@@ -1,0 +1,74 @@
+<?php
+
+/**
+ * @file
+ * Install files for Push Notifications module.
+ */
+
+/**
+ * Implements hook_field_scheme().
+ */
+function push_notifications_schema() {
+  $schema = array();
+
+  $schema['push_notifications_queue'] = array(
+    'description' => 'Queue for scheduled push notifications',
+    'fields' => array(
+      'uid' => array(
+        'description' => 'User ID',
+        'type' => 'int',
+        'not null' => TRUE,
+      ),
+      'payload' => array(
+        'description' => 'Message',
+        'type' => 'varchar',
+        'length' => '256',
+        'not null' => TRUE,
+      ),
+      'timestamp' => array(
+        'description' => 'Timestamp when message was added',
+        'type' => 'int',
+        'not null' => TRUE,
+      ),
+    ),
+    'primary key' => array('uid'),
+    'indexes' => array(
+      'timestamp' => array('timestamp'),
+    ),
+  );
+
+  $schema['push_notifications_tokens'] = array(
+    'description' => 'Stores device tokens',
+    'fields' => array(
+      'token' => array(
+        'description' => 'Device Token',
+        'type' => 'varchar',
+        'length' => '80',
+        'not null' => TRUE,
+      ),
+      'uid' => array(
+        'description' => 'User ID',
+        'type' => 'int',
+        'not null' => TRUE,
+      ),
+      'type' => array(
+        'description' => 'Device Type (iPhone, Android)',
+        'type' => 'int',
+        'not null' => TRUE,
+      ),
+      'timestamp' => array(
+        'description' => 'Timestamp token was added',
+        'type' => 'int',
+        'not null' => TRUE,
+      ),
+    ),
+    'primary key' => array('token', 'uid'),
+    'indexes' => array(
+      'timestamp' => array('timestamp'),
+      'token' => array('token'),
+      'type' => array('type'),
+    ),
+  );
+
+  return $schema;
+}
