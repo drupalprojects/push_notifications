@@ -6,10 +6,64 @@
  */
 
 /**
+ * Overview form for Push Notification Settings.
+ */
+function push_notifications_admin_overview_form($form_state) {
+  // Load all tokens stored in the database.
+  $query = db_select('push_notifications_tokens', 'pnt');
+  $query->fields('pnt', array('uid', 'type', 'language'));
+  $result = $query->execute();
+  $counts = array(
+    'total' => 0,
+    'ios' => 0,
+    'android' => 0,
+    'anonymous' => 0,
+    'registered' => 0,
+  );
+  
+  foreach ($result as $data) {
+    $counts['total']++;
+    switch ($data->type) {
+      case PUSH_NOTIFICATIONS_TYPE_ID_IOS: $counts['ios']++; break;
+      case PUSH_NOTIFICATIONS_TYPE_ID_ANDROID: $counts['android']++; break;
+    }
+    if ($data->uid == 0) {
+      $counts['anonymous']++;
+    }
+    else {
+      $counts['registered']++;
+    }
+  }  
+  
+  $form = array();
+  
+  $statistics_description = (!$counts['total']) ? t('No tokens stored yet.') : null;
+  $form['statistics'] = array(
+    '#type' => 'fieldset',
+    '#title' => 'Push Notification Statistics',
+    '#description' => $statistics_description,
+  );
+  
+  return $form;
+}
+
+/**
  * Form callback for Push Notifications Settings.
  */
 function push_notifications_admin_form($form_state) {
   $form = array();
+
+  $form['configuration_general'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('General Push Notifications Settings'),
+  );
+  
+  $form['configuration_general']['push_notifications_require_enabled_language'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Only allow enabled languages'),
+    '#description' => t('When setting a device token, only allow languages that are enabled on this site (instead of all valid langauges)'),
+    '#default_value' => variable_get('push_notifications_require_enabled_language', 0),
+  );
 
   $configuration_apns_replacements = array(
     '!link' => l(t('this tutorial'), 'http://blog.boxedice.com/2009/07/10/how-to-build-an-apple-push-notification-provider-server-tutorial/', array('attributes' => array('target' => '_blank'))),
@@ -73,6 +127,8 @@ function push_notifications_admin_form($form_state) {
  * Submit callback for push notification configuration page.
  */
 function push_notifications_admin_form_submit($form, &$form_state) {
+  variable_set('push_notifications_require_enabled_language', $form_state['values']['push_notifications_require_enabled_language']);
+  
   $apns_environment = $form_state['values']['push_notifications_apns_environment'];
   switch ($apns_environment) {
     // Development Environment.

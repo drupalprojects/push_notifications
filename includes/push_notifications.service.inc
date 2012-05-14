@@ -20,6 +20,29 @@ function _push_notifications_service_create_device_token($data) {
   if (!isset($data['token']) || !isset($data['type'])) {
     return services_error(t('At least one parameter is missing.'), 400);
   }
+  
+  // Default language to English and validate language setting.
+  if (isset($data['language'])) {
+    // Make sure this is a valid language code.
+    include_once DRUPAL_ROOT . '/includes/iso.inc';
+    $languages = _locale_get_predefined_list();
+    if (!array_key_exists($data['language'], $languages)) {
+      return services_error(t('This is not a valid ISO 639 language code'), 404);
+    }
+    
+    // Optionally, only allow enabled languages.
+    if (variable_get('push_notifications_require_enabled_language')) {
+      $available_languages = language_list();
+      if (!array_key_exists($data['language'], $available_languages)) {
+        return services_error(t('This language is not enabled'), 404);
+      }
+    }
+    $language = $data['language'];
+  }
+  else {
+    $default_language = language_default();
+    $language = $default_language->language;
+  }
 
   // Decode data.
   $token = $data['token'];
@@ -46,7 +69,7 @@ function _push_notifications_service_create_device_token($data) {
   }
 
   // Store this token in the database.
-  $result = push_notifications_store_token($token, $type_id, $uid);
+  $result = push_notifications_store_token($token, $type_id, $uid, $language);
 
   if ($result === FALSE) {
     return services_error(t('This token could not be stored.'), 400);

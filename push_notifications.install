@@ -61,14 +61,40 @@ function push_notifications_schema() {
         'type' => 'int',
         'not null' => TRUE,
       ),
+      'language' => array(
+        'description' => 'Language',
+        'type' => 'varchar',
+        'length' => 2,
+        'not null' => TRUE,
+      ),      
     ),
     'primary key' => array('token', 'uid'),
     'indexes' => array(
       'timestamp' => array('timestamp'),
       'token' => array('token'),
       'type' => array('type'),
+      'language' => array('language'),
     ),
   );
 
   return $schema;
+}
+
+/**
+ * Implements hook_update_n.
+ */
+function push_notifications_update_7001() {
+  $table = 'push_notifications_tokens';
+  
+  // Add a language field to push_notifications_tokens.  
+  $spec = array(
+    'type' => 'varchar',
+    'description' => 'Language',
+    'length' => 2,
+    'not null' => TRUE,
+  );
+  db_add_field($table, 'language', $spec);
+  
+  // Add an index for the language field.
+  db_add_index($table, 'language', array('language'));
 }

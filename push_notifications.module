@@ -60,14 +60,26 @@ function push_notifications_menu() {
     'title' => 'Push Notifications',
     'access arguments' => array('administer site configuration'),
     'page callback' => 'drupal_get_form',
-    'page arguments' => array('push_notifications_admin_form'),
+    'page arguments' => array('push_notifications_admin_overview_form'),
+    'description' => 'Push Notifications Settings.',
+    'file' => 'push_notifications.admin.inc',
+    'file path' => drupal_get_path('module', 'push_notifications') . '/includes',
+  );
+
+  $items['admin/config/services/push_notifications/overview'] = array(
+    'type' => MENU_DEFAULT_LOCAL_TASK,
+    'title' => 'Overview',
+    'weight' => -50,
+    'access arguments' => array('administer site configuration'),
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('push_notifications_admin_overview_form'),
     'description' => 'Push Notifications Settings.',
     'file' => 'push_notifications.admin.inc',
     'file path' => drupal_get_path('module', 'push_notifications') . '/includes',
   );
 
   $items['admin/config/services/push_notifications/configure'] = array(
-    'type' => MENU_DEFAULT_LOCAL_TASK,
+    'type' => MENU_LOCAL_TASK,
     'title' => 'Configuration',
     'access arguments' => array('administer site configuration'),
     'page callback' => 'drupal_get_form',
@@ -149,6 +161,13 @@ function push_notifications_services_resources() {
             'optional' => FALSE,
             'source' => 'data',
           ),
+          array(
+            'name' => 'language',
+            'type' => 'string',
+            'description' => 'Language',
+            'optional' => TRUE,
+            'source' => 'data',
+          ),          
         ),
       ),
     ),
@@ -205,14 +224,22 @@ function push_notifications_find_token($token = '', $uid = '', $exclude = FALSE)
  * @param $type_id
  *   Device type id.
  * @param $uid
- *   User ID, optional.
+ *   User ID.
+ * @param $language
+ *   Language that this token is registered for, optional.
  *
  * @return
  *   Failure to write a record will return FALSE, Otherwise SAVED_NEW.
  */
-function push_notifications_store_token($token = '', $type_id = '', $uid = '') {
+function push_notifications_store_token($token = '', $type_id = '', $uid = '', $language = '') {
   if (!is_string($token) || !is_numeric($type_id) || !is_numeric($uid)) {
     return FALSE;
+  }
+  
+  // Default language to site default.
+  if ($language == '') {
+    $default_language = language_default();
+    $language = $default_language->language;    
   }
 
   // Write record.
@@ -221,6 +248,7 @@ function push_notifications_store_token($token = '', $type_id = '', $uid = '') {
   $record->token = $token;
   $record->uid = $uid;
   $record->type = $type_id;
+  $record->language = $language;
   $record->timestamp = time();
   return drupal_write_record($table, $record);
 }
