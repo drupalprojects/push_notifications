@@ -526,13 +526,15 @@ function push_notifications_c2dm_send_message($tokens, $payload) {
   *
   * @param $type_id
   *   Device Type ID.
+  * @param $language
+  *   Language code, optional.
   * @param $raw
   *   Boolean, set true to retrieve the raw query results.
   *
   * @return
   *   Array of results, null if no entries.
   */
-function push_notifications_get_tokens($type_id = '', $raw = FALSE) {
+function push_notifications_get_tokens($type_id = '', $language = FALSE, $raw = FALSE) {
   // Make sure this type_id is supported.
   $valid_type_ids = array(PUSH_NOTIFICATIONS_TYPE_ID_IOS, PUSH_NOTIFICATIONS_TYPE_ID_ANDROID);
   if (!in_array($type_id, $valid_type_ids)) {
@@ -543,6 +545,10 @@ function push_notifications_get_tokens($type_id = '', $raw = FALSE) {
   $query = db_select('push_notifications_tokens', 'pnt');
   $query->fields('pnt', array('token'));
   $query->condition('pnt.type', $type_id);
+  // If language code is passed, limit the results by language.
+  if ($language) {
+    $query->condition('pnt.language', $language);
+  }
   $result = $query->execute();
 
   // Return raw result, if needed.
@@ -557,6 +563,38 @@ function push_notifications_get_tokens($type_id = '', $raw = FALSE) {
     }
     return $tokens;
   }
+}
+
+
+
+/**
+ * Determine any languages used in the push
+ * notifications table.
+ */
+function push_notifications_used_languages() {
+  $query = db_select('push_notifications_tokens', 'pnt');
+  $query->fields('pnt', array('language'));
+  $query->distinct();
+  $result = $query->execute();
+  
+  // Convert the records into an array with
+  // full language code available.
+  include_once DRUPAL_ROOT . '/includes/iso.inc';
+  $languages = _locale_get_predefined_list();
+
+  $used_languages = array();
+  foreach ($result as $record) {
+    $used_languages[$record->language] = $languages[$record->language][0];
+  }
+  
+  if (!empty($used_languages)) {
+    // Sort the languages alphabetically.
+    $used_langauges = asort($used_languages);
+    // Add an "All" option.
+    array_unshift($used_languages, 'All Recipients');    
+  }
+  
+  return $used_languages;
 }
 
 

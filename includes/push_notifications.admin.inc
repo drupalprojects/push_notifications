@@ -20,7 +20,7 @@ function push_notifications_admin_overview_form($form_state) {
     'anonymous' => 0,
     'registered' => 0,
   );
-  
+
   foreach ($result as $data) {
     $counts['total']++;
     switch ($data->type) {
@@ -33,17 +33,68 @@ function push_notifications_admin_overview_form($form_state) {
     else {
       $counts['registered']++;
     }
-  }  
-  
+  }
+
   $form = array();
-  
+
   $statistics_description = (!$counts['total']) ? t('No tokens stored yet.') : null;
   $form['statistics'] = array(
     '#type' => 'fieldset',
     '#title' => 'Push Notification Statistics',
     '#description' => $statistics_description,
   );
-  
+
+  $form['statistics']['total'] = array(
+    '#type' => 'item',
+    '#title' => t('Total Tokens Stored'),
+    '#markup' => $counts['total'],
+  );
+
+  $form['statistics']['ios'] = array(
+    '#type' => 'item',
+    '#title' => t('iOS Tokens Stored'),
+    '#markup' => $counts['ios'],
+  );
+
+  $form['statistics']['android'] = array(
+    '#type' => 'item',
+    '#title' => t('Android Tokens Stored'),
+    '#markup' => $counts['android'],
+  );
+
+  $form['statistics']['anonymous'] = array(
+    '#type' => 'item',
+    '#title' => t('Anonymous Tokens Stored'),
+    '#markup' => $counts['anonymous'],
+  );
+
+  $form['statistics']['registered'] = array(
+    '#type' => 'item',
+    '#title' => t('Registered Tokens Stored'),
+    '#markup' => $counts['registered'],
+  );
+
+  $form['languages'] = array(
+    '#type' => 'fieldset',
+    '#title' => 'Push Notification Languages',
+    '#description' => t('Languages used across all push notification recipients'),
+  );
+
+  // Determine which languages are used.
+  $languages_used = push_notifications_used_languages();
+  if (!empty($languages_used)) {
+    unset($languages_used[0]);
+    $languages_markup = theme('item_list', array('items' => $languages_used));
+  }
+  else {
+    $languages_markup = t('No tokens stored or no tokens with a language association stored');
+  }
+
+  $form['languages']['used'] = array(
+    '#type' => 'item',
+    '#markup' => $languages_markup,
+  );
+
   return $form;
 }
 
@@ -57,7 +108,7 @@ function push_notifications_admin_form($form_state) {
     '#type' => 'fieldset',
     '#title' => t('General Push Notifications Settings'),
   );
-  
+
   $form['configuration_general']['push_notifications_require_enabled_language'] = array(
     '#type' => 'checkbox',
     '#title' => t('Only allow enabled languages'),
@@ -128,7 +179,7 @@ function push_notifications_admin_form($form_state) {
  */
 function push_notifications_admin_form_submit($form, &$form_state) {
   variable_set('push_notifications_require_enabled_language', $form_state['values']['push_notifications_require_enabled_language']);
-  
+
   $apns_environment = $form_state['values']['push_notifications_apns_environment'];
   switch ($apns_environment) {
     // Development Environment.
@@ -180,11 +231,20 @@ function push_notifications_mass_push_form($form_state) {
     '#type' => 'textfield',
     '#title' => t('Push Message'),
     '#description' => t('Compose the message to send out (256 characters max.)'),
-    '#default_value' => (isset($form_state['values']['message'])) ? $form_state['values']['message'] : '',
+    '#default_value' => (isset($form_state['values']['message']['alert'])) ? $form_state['values']['message']['alert'] : '',
     '#required' => TRUE,
     '#size' => 128,
     '#maxlength' => 256,
     '#weight' => 10,
+  );
+
+  $form['language'] = array(
+    '#type' => 'select',
+    '#title' => t('Language'),
+    '#options' => push_notifications_used_languages(),
+    '#description' => t('Optionally, only select the push notifications to recipients with this language.'),
+    '#default_value' => (isset($form_state['values']['language'])) ? $form_state['values']['language'] : '',
+    '#weight' => 12,
   );
 
   // Only show Android option if C2DM credentials are available.
@@ -201,7 +261,8 @@ function push_notifications_mass_push_form($form_state) {
 
   $form['submit'] = array(
     '#type' => 'submit',
-    '#value' => 'Send Push Message',
+    '#value' => 'Send Push Notification',
+    '#weight' => 50,
   );
 
   return $form;
@@ -249,32 +310,33 @@ function push_notifications_mass_push_form_validate($form, &$form_state) {
 function push_notifications_mass_push_form_submit($form, &$form_state) {
   $recipients = $form_state['values']['recipients'];
   $payload = $form_state['values']['payload'];
+  $language = $form_state['values']['language'];
 
   // Send message to all iOS recipients.
   if (!empty($recipients['ios'])) {
     // Get all iOS recipients.
-    $tokens_ios = push_notifications_get_tokens(PUSH_NOTIFICATIONS_TYPE_ID_IOS);
+    $tokens_ios = push_notifications_get_tokens(PUSH_NOTIFICATIONS_TYPE_ID_IOS, $language);
     if (!empty($tokens_ios)) {
       $result = push_notifications_apns_send_message($tokens_ios, $payload);
       $dsm_type = ($result['success']) ? 'status' : 'error';
       drupal_set_message($result['message'], $dsm_type);
     }
     else {
-      drupal_set_message(t('No iOS recipients found.'));
+      drupal_set_message(t('No iOS recipients found, potentially for this language.'));
     }
   }
 
   // Send message to all Android recipients.
   if (!empty($recipients['android'])) {
     // Get all Android recipients.
-    $tokens_android = push_notifications_get_tokens(PUSH_NOTIFICATIONS_TYPE_ID_ANDROID);
+    $tokens_android = push_notifications_get_tokens(PUSH_NOTIFICATIONS_TYPE_ID_ANDROID, $language);
     if (!empty($tokens_android)) {
       $result = push_notifications_c2dm_send_message($tokens_android, $payload);
       $dsm_type = ($result['success']) ? 'status' : 'error';
       drupal_set_message($result['message'], $dsm_type);
     }
     else {
-      drupal_set_message(t('No Android recipients found.'));
+      drupal_set_message(t('No Android recipients found, potentially for this language.'));
     }
   }
 }
