@@ -104,6 +104,9 @@ function push_notifications_admin_overview_form($form_state) {
 function push_notifications_admin_form($form_state) {
   $form = array();
 
+  // Add JavaScript for Google push notification selector.
+  drupal_add_js(drupal_get_path('module', 'push_notifications') . '/scripts/push_notifications_admin.js');
+
   $form['configuration_general'] = array(
     '#type' => 'fieldset',
     '#title' => t('General Push Notifications Settings'),
@@ -146,22 +149,60 @@ function push_notifications_admin_form($form_state) {
 
   $form['configuration_c2dm'] = array(
     '#type' => 'fieldset',
-    '#title' => t('C2DM Push Notifications'),
-    '#description' => t('Requires a valid C2DM Google Account. !signup to enable a Google Account for C2DM.', array('!signup' => l(t('Signup here'), 'http://code.google.com/android/c2dm/signup.html', array('attributes' => array('target' => '_blank'))))),
+    '#title' => t('Google Push Notifications'),
+    '#description' => t('Requires a valid Google Cloud Messaging or C2DM account. !signup for Google Cloud Messaging. Google does not accept new signups for C2DM.', array('!signup' => l(t('Signup here'), 'http://developer.android.com/guide/google/gcm/gs.html', array('attributes' => array('target' => '_blank'))))),
   );
 
-  $form['configuration_c2dm']['push_notifications_c2dm_username'] = array(
+  $form['configuration_c2dm']['push_notifications_google_type'] = array(
+    '#type' => 'radios',
+    '#title' => t('Google Push Notifications Type'),
+    '#description' => t('Google\'s C2DM service (Cloud 2 Device Messaging) was replaced by the Google Cloud Messaging Service. Each services requires a different authentication method. '),
+    '#default_value' => PUSH_NOTIFICATIONS_GOOGLE_TYPE,
+    '#options' => array(
+      PUSH_NOTIFICATIONS_GOOGLE_TYPE_C2DM => 'Cloud 2 Device Messaging',
+      PUSH_NOTIFICATIONS_GOOGLE_TYPE_GCM => 'Google Cloud Messaging',
+    ),
+  );
+
+  $c2dm_credentials_visible = (PUSH_NOTIFICATIONS_GOOGLE_TYPE == PUSH_NOTIFICATIONS_GOOGLE_TYPE_C2DM);
+  $form['configuration_c2dm']['c2dm_credentials'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Cloud 2 Device Messaging Settings'),
+    '#description' => t('Enter your C2DM credentials.'),
+      '#attributes' => array(
+        'style' => (PUSH_NOTIFICATIONS_GOOGLE_TYPE != PUSH_NOTIFICATIONS_GOOGLE_TYPE_C2DM) ? 'display:none' : '',
+      ),
+  );
+
+  $form['configuration_c2dm']['c2dm_credentials']['push_notifications_c2dm_username'] = array(
     '#type' => 'textfield',
     '#title' => t('C2DM Username'),
     '#description' => t('Enter the username for your C2DM Google Account'),
     '#default_value' => variable_get('push_notifications_c2dm_username', ''),
   );
 
-  $form['configuration_c2dm']['push_notifications_c2dm_password'] = array(
+  $form['configuration_c2dm']['c2dm_credentials']['push_notifications_c2dm_password'] = array(
     '#type' => 'textfield',
     '#title' => t('C2DM Password'),
     '#description' => t('Enter the password for your C2DM Google Account'),
     '#default_value' => variable_get('push_notifications_c2dm_password', ''),
+  );
+
+  $form['configuration_c2dm']['gcm_credentials'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Google Cloud Messaging'),
+    '#description' => t('Enter your Google Cloud Messaging details'),
+      '#attributes' => array(
+        'style' => (PUSH_NOTIFICATIONS_GOOGLE_TYPE != PUSH_NOTIFICATIONS_GOOGLE_TYPE_GCM) ? 'display:none' : '',
+      ),
+
+  );
+
+  $form['configuration_c2dm']['gcm_credentials']['push_notifications_gcm_api_key'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Google Cloud Messaging API Key'),
+    '#description' => t('Enter the API key for your Google Cloud project'),
+    '#default_value' => variable_get('push_notifications_gcm_api_key', ''),
   );
 
   $form['submit'] = array(
@@ -203,6 +244,9 @@ function push_notifications_admin_form_submit($form, &$form_state) {
   variable_set('push_notifications_c2dm_username', $form_state['values']['push_notifications_c2dm_username']);
   variable_set('push_notifications_c2dm_password', $form_state['values']['push_notifications_c2dm_password']);
 
+  // Set GCM API key.
+  variable_set('push_notifications_gcm_api_key', $form_state['values']['push_notifications_gcm_api_key']);
+
   // Set the APNS stream limit.
   variable_set('push_notifications_apns_stream_context_limit', $form_state['values']['stream_context_limit']);
 
@@ -238,18 +282,20 @@ function push_notifications_mass_push_form($form_state) {
     '#weight' => 10,
   );
 
-  $form['language'] = array(
-    '#type' => 'select',
-    '#title' => t('Language'),
-    '#options' => push_notifications_used_languages(),
-    '#description' => t('Optionally, only select the push notifications to recipients with this language.'),
-    '#default_value' => (isset($form_state['values']['language'])) ? $form_state['values']['language'] : '',
-    '#weight' => 12,
-  );
+  if (module_exists('locale')) {
+    $form['language'] = array(
+      '#type' => 'select',
+      '#title' => t('Language'),
+      '#options' => push_notifications_used_languages(),
+      '#description' => t('Optionally, only select the push notifications to recipients with this language.'),
+      '#default_value' => (isset($form_state['values']['language'])) ? $form_state['values']['language'] : '',
+      '#weight' => 12,
+    );
+  }
 
   // Only show Android option if C2DM credentials are available.
   $recipients_options = array('ios' => t('iOS (iPhone/iPad)'));
-  if (PUSH_NOTIFICATIONS_C2DM_USERNAME && PUSH_NOTIFICATIONS_C2DM_PASSWORD) {
+  if ((PUSH_NOTIFICATIONS_C2DM_USERNAME && PUSH_NOTIFICATIONS_C2DM_PASSWORD) || PUSH_NOTIFICATIONS_GCM_API_KEY) {
     $recipients_options['android'] = t('Android');
   }
   $form['recipients'] = array(
@@ -310,7 +356,7 @@ function push_notifications_mass_push_form_validate($form, &$form_state) {
 function push_notifications_mass_push_form_submit($form, &$form_state) {
   $recipients = $form_state['values']['recipients'];
   $payload = $form_state['values']['payload'];
-  $language = $form_state['values']['language'];
+  $language = (isset($form_state['values']['language'])) ? $form_state['values']['language'] : false;
 
   // Send message to all iOS recipients.
   if (!empty($recipients['ios'])) {
@@ -331,7 +377,16 @@ function push_notifications_mass_push_form_submit($form, &$form_state) {
     // Get all Android recipients.
     $tokens_android = push_notifications_get_tokens(PUSH_NOTIFICATIONS_TYPE_ID_ANDROID, $language);
     if (!empty($tokens_android)) {
-      $result = push_notifications_c2dm_send_message($tokens_android, $payload);
+      // Determine which method to use for Google push notifications.
+      switch (PUSH_NOTIFICATIONS_GOOGLE_TYPE) {
+        case PUSH_NOTIFICATIONS_GOOGLE_TYPE_C2DM:
+        $result = push_notifications_c2dm_send_message($tokens_android, $payload);
+        break;
+
+        case PUSH_NOTIFICATIONS_GOOGLE_TYPE_GCM:
+        $result = push_notifications_gcm_send_message($tokens_android, $payload);
+        break;
+      }
       $dsm_type = ($result['success']) ? 'status' : 'error';
       drupal_set_message($result['message'], $dsm_type);
     }

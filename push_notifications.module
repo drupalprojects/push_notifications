@@ -38,6 +38,16 @@ define('PUSH_NOTIFICATIONS_APNS_QUERY_FEEDBACK_SERVICE', variable_get('push_noti
 define('PUSH_NOTIFICATIONS_APNS_STREAM_CONTEXT_LIMIT', variable_get('push_notifications_apns_stream_context_limit', 5));
 
 //
+// Google Variables
+//
+// Google Push Notification Types
+// 0 => Cloud 2 Device Messaging
+// 1 => Google Cloud Messaging
+define('PUSH_NOTIFICATIONS_GOOGLE_TYPE_C2DM', 0);
+define('PUSH_NOTIFICATIONS_GOOGLE_TYPE_GCM', 1);
+define('PUSH_NOTIFICATIONS_GOOGLE_TYPE', variable_get('push_notifications_google_type', PUSH_NOTIFICATIONS_GOOGLE_TYPE_GCM));
+
+//
 // C2DM Variables
 //
 // C2DM Credentials.
@@ -47,6 +57,13 @@ define('PUSH_NOTIFICATIONS_C2DM_CLIENT_LOGIN_ACTION_URL', variable_get('push_not
 // C2DM Server Post URL
 define('PUSH_NOTIFICATIONS_C2DM_SERVER_POST_URL', variable_get('push_notifications_c2dm_server_post_url', 'https://android.apis.google.com/c2dm/send'));
 
+//
+// GCM Variables
+//
+// GCM API KEY Credentials.
+define('PUSH_NOTIFICATIONS_GCM_API_KEY', variable_get('push_notifications_gcm_api_key', ''));
+// GCM Server Post URL
+define('PUSH_NOTIFICATIONS_GCM_SERVER_POST_URL', variable_get('push_notifications_gcm_server_post_url', 'https://android.googleapis.com/gcm/send'));
 
 
 /**
@@ -125,6 +142,10 @@ function push_notifications_permission() {
       'title' => t('Register Device Token'),
       'description' => t('Allows users to register a device token.'),
     ),
+    'remove device token' => array(
+      'title' => t('Remove Device Token'),
+      'description' => t('Allows users to remove a device token.'),
+    ),
   );
 }
 
@@ -167,7 +188,27 @@ function push_notifications_services_resources() {
             'description' => 'Language',
             'optional' => TRUE,
             'source' => 'data',
-          ),          
+          ),
+        ),
+      ),
+      'delete' => array(
+        'help' => 'Removes a registered a device token. Only needs the token.',
+        'callback' => '_push_notifications_service_delete_device_token',
+        'file' => array(
+          'type' => 'inc',
+          'module' => 'push_notifications',
+          'name' => 'includes/push_notifications.service'
+        ),
+        'access arguments' => array('remove device token'),
+        'access arguments append' => FALSE,
+        'args' => array(
+          array(
+            'name' => 'token',
+            'type' => 'string',
+            'description' => 'Device Token',
+            'optional' => FALSE,
+            'source' => array('path' => '0'),
+          ),
         ),
       ),
     ),
@@ -235,11 +276,11 @@ function push_notifications_store_token($token = '', $type_id = '', $uid = '', $
   if (!is_string($token) || !is_numeric($type_id) || !is_numeric($uid)) {
     return FALSE;
   }
-  
+
   // Default language to site default.
   if ($language == '') {
     $default_language = language_default();
-    $language = $default_language->language;    
+    $language = $default_language->language;
   }
 
   // Write record.
@@ -497,7 +538,7 @@ function push_notifications_c2dm_send_message($tokens, $payload) {
 
     // If Google's server returns a reply, but that reply includes an error, log the error message.
     if ($info['http_code'] == 200 && (isset($response) && preg_match('/Error/', $response))) {
-      watchdog('push_notifications', 'Google\'s Server returned an error: ' . $response, NULL, WATCHDOG_ERROR);
+      watchdog('push_notifications', "Google's Server returned an error: " . $response, NULL, WATCHDOG_ERROR);
 
       // If the device token is invalid or not registered (anymore because the user
       // has uninstalled the application), remove this device token.
@@ -519,6 +560,109 @@ function push_notifications_c2dm_send_message($tokens, $payload) {
   return $result;
 }
 
+/**
+ * Send out push notifications through GCM.
+ *
+ * @link http://developer.android.com/guide/google/gcm/index.html
+ *
+ * @param $tokens
+ *   Array of gcm tokens
+ * @param $payload
+ *   Payload to send.
+ *
+ * @return
+ *   Array with the following keys:
+ *   - count_attempted (# of attempted messages sent)
+ *   - count_success   (# of successful sends)
+ *   - success         (# boolean)
+ *   - message         (Prepared result message)
+ */
+function push_notifications_gcm_send_message($tokens, $payload) {
+  if (!is_array($tokens) || empty($payload) || (is_array($tokens) && empty($tokens))) {
+    return FALSE;
+  }
+
+  // Define an array of result values.
+  $result = array(
+    'count_attempted' => 0,
+    'count_success' => 0,
+    'success' => 0,
+    'message' => '',
+  );
+
+  // Define the header.
+  $headers = array();
+  $headers[] = 'Content-Type:application/json';
+  $headers[] = 'Authorization:key=' . PUSH_NOTIFICATIONS_GCM_API_KEY;
+
+
+  // Check of many token bundles can be build.
+  $token_bundles = ceil(count($tokens) / 1000);
+  $result['count_attempted'] = count($tokens);
+
+  // Send a push notification to every recipient.
+  for ($i = 0; $i < $token_bundles; $i++) {
+    // Create a token bundle.
+    $bundle_tokens = array_slice($tokens, $i * 1000, 1000, FALSE);
+
+    // Convert the payload into the correct format for C2DM payloads.
+    // Prefill an array with values from other modules first.
+    $data = array();
+    foreach ($payload as $key => $value) {
+      if ($key != 'alert') {
+        $data['data'][$key] = $value;
+      }
+    }
+    // Fill the default values required for each payload.
+    $data['registration_ids'] = $bundle_tokens;
+    $data['collapse_key'] = (string) time();
+    $data['data']['message'] = $payload['alert'];
+
+    $curl = curl_init();
+    curl_setopt($curl, CURLOPT_URL, PUSH_NOTIFICATIONS_GCM_SERVER_POST_URL);
+    curl_setopt($curl, CURLOPT_HTTPHEADER, $headers);
+    curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, FALSE);
+    curl_setopt($curl, CURLOPT_POST, TRUE);
+    curl_setopt($curl, CURLOPT_RETURNTRANSFER, TRUE);
+    curl_setopt($curl, CURLOPT_POSTFIELDS, json_encode($data));
+    $response_raw = curl_exec($curl);
+    $info = curl_getinfo($curl);
+    curl_close($curl);
+
+    $response = FALSE;
+    if (isset($response_raw)) {
+      $response = json_decode($response_raw);
+      dpm($response);
+    }
+
+    // If Google's server returns a reply, but that reply includes an error,
+    // log the error message.
+    if ($info['http_code'] == 200 && (!empty($response->failure))) {
+      watchdog('push_notifications', "Google's Server returned an error: " . $response_raw, NULL, WATCHDOG_ERROR);
+
+      // Analyze the failure.
+      foreach ($response->results as $token_index => $message_result) {
+        if (!empty($message_result->error)) {
+          // If the device token is invalid or not registered (anymore because the user
+          // has uninstalled the application), remove this device token.
+          if ($message_result->error == 'NotRegistered' || $message_result->error == 'InvalidRegistration') {
+            push_notifications_purge_token($bundle_tokens[$token_index]);
+            watchdog('push_notifications', 'GCM token not valid anymore. Removing token ' . $bundle_tokens[$token_index]);
+          }
+        }
+      }
+    }
+
+    // Count the successful sent push notifications if there are any.
+    if ($info['http_code'] == 200 && !empty($response->success)) {
+      $result['count_success'] += $response->success;
+    }
+  }
+
+  $result['message'] = t('Successfully sent !count_success Android push messages (attempted to send !count messages).', array('!count_success' => $result['count_success'], '!count' => $result['count_attempted']));
+  $result['success'] = TRUE;
+  return $result;
+}
 
 
 /**
@@ -576,7 +720,7 @@ function push_notifications_used_languages() {
   $query->fields('pnt', array('language'));
   $query->distinct();
   $result = $query->execute();
-  
+
   // Convert the records into an array with
   // full language code available.
   include_once DRUPAL_ROOT . '/includes/iso.inc';
@@ -586,14 +730,14 @@ function push_notifications_used_languages() {
   foreach ($result as $record) {
     $used_languages[$record->language] = $languages[$record->language][0];
   }
-  
+
   if (!empty($used_languages)) {
     // Sort the languages alphabetically.
     $used_langauges = asort($used_languages);
     // Add an "All" option.
-    array_unshift($used_languages, 'All Recipients');    
+    array_unshift($used_languages, 'All Recipients');
   }
-  
+
   return $used_languages;
 }
 

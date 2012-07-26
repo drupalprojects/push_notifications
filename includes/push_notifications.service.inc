@@ -8,7 +8,7 @@
 /**
  * Service callback to store a device token.
  *
- * @params $data
+ * @param $data
  *   Array with the following keys:
  *   - token
  *   - type
@@ -20,7 +20,7 @@ function _push_notifications_service_create_device_token($data) {
   if (!isset($data['token']) || !isset($data['type'])) {
     return services_error(t('At least one parameter is missing.'), 400);
   }
-  
+
   // Default language to English and validate language setting.
   if (isset($data['language'])) {
     // Make sure this is a valid language code.
@@ -29,7 +29,7 @@ function _push_notifications_service_create_device_token($data) {
     if (!array_key_exists($data['language'], $languages)) {
       return services_error(t('This is not a valid ISO 639 language code'), 404);
     }
-    
+
     // Optionally, only allow enabled languages.
     if (variable_get('push_notifications_require_enabled_language')) {
       $available_languages = language_list();
@@ -80,4 +80,22 @@ function _push_notifications_service_create_device_token($data) {
       'message' => 'This token was successfully stored in the database.'
     );
   }
+}
+
+/**
+ * Deletes an already registered token.
+ *
+ * @param $data
+ *
+ * @return array|mixed
+ */
+function _push_notifications_service_delete_device_token($token) {
+  if (empty($token)) {
+    return services_error(t('Token parameter is missing.'), 400);
+  }
+  push_notifications_purge_token($token);
+  return array(
+    'success' => 1,
+    'message' => 'The token was successfully removed from the database.'
+  );
 }
