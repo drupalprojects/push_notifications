@@ -273,6 +273,12 @@ function push_notifications_find_token($token = '', $uid = '', $exclude = FALSE)
  *   Failure to write a record will return FALSE, Otherwise SAVED_NEW.
  */
 function push_notifications_store_token($token = '', $type_id = '', $uid = '', $language = '') {
+   // Let modules modify the token before it is saved to the database.
+  foreach(module_implements('push_notifications_store_token') as $module) {
+    $function = $module . '_push_notifications_store_token';
+    $function($token, $type_id, $uid);
+  }
+
   if (!is_string($token) || !is_numeric($type_id) || !is_numeric($uid)) {
     return FALSE;
   }
