@@ -28,7 +28,7 @@ define('PUSH_NOTIFICATIONS_APNS_FEEDBACK_PORT', 2196);
 // Name of certificate, initially set to development certificate.
 define('PUSH_NOTIFICATIONS_APNS_CERTIFICATE', variable_get('push_notifications_apns_certificate', 'apns-production.pem'));
 // Size limit for individual payload, in bytes.
-define('PUSH_NOTIFICATIONS_APNS_PAYLOAD_SIZE_LIMIT', 256);
+define('PUSH_NOTIFICATIONS_APNS_PAYLOAD_SIZE_LIMIT', 255);
 // Payload sound
 define('PUSH_NOTIFICATIONS_APNS_NOTIFICATION_SOUND', variable_get('push_notifications_apns_notification_sound', 'default'));
 // Boolean value to indicate wether Apple's feedback service should be called
@@ -218,6 +218,28 @@ function push_notifications_services_resources() {
 
 
 /**
+* Implements hook_privatemsg_message_insert.
+*/
+function push_notifications_privatemsg_message_insert($message) {
+  if (variable_get('push_notifications_privatemsg_integration', 0)) {
+    // Compose the payload. If the body is empty, just use the subject line.
+    // Otherwise, combine subject and body.
+    $payload = (empty($message->body)) ? $message->subject : $message->subject . ' ' . $message->body;
+    $payload = 'From ' . $message->author->name . ': ' . $payload;
+
+    // Compose an array of recipients.
+    $recipients = array();
+    foreach ($message->recipients as $recipient) {
+      $recipients[] = $recipient->uid;
+    }
+
+    push_notifications_send_message($recipients, $payload);    
+  }
+}
+
+
+
+/**
  * Determine if this user has already stored a token
  * in the database. The same device token can be
  * registered for multiple users, because multiple
@@ -356,6 +378,81 @@ function push_notifications_check_payload_size($payload = '') {
 
 
 /**
+* Send out push notifications, switch automatically between delivery method.
+*
+* @param $recipients
+*   Array of user ids.
+* @param $message
+*   Payload to send.
+*/
+function push_notifications_send_message($recipients, $message) {
+  if (!is_array($recipients) || !is_string($message)) {
+    return FALSE;
+  }
+
+  // Let modules modify the message before it is sent.
+  foreach(module_implements('push_notifications_send_message') as $module) {
+    $function = $module . '_push_notifications_send_message';
+    $function($message);
+  }
+
+  // Shorten the message to 255 characters / 8 bit.
+  $message = truncate_utf8($message, PUSH_NOTIFICATIONS_APNS_PAYLOAD_SIZE_LIMIT, TRUE, TRUE);
+
+  // Convert the payload into the correct format for delivery.
+  $payload = array('alert' => $message);
+
+  // Determine if any of the recipients have one or multiple tokens stored.
+  $tokens = array();
+  foreach ($recipients as $uid) {
+    $user_tokens = push_notification_get_user_tokens($uid);
+    if (!empty($user_tokens)) {
+      $tokens = array_merge($tokens, $user_tokens);
+    }
+  }
+
+  // Stop right here if none of these users have any tokens.
+  if (empty($tokens)) {
+    return FALSE;
+  }
+
+  // Group tokens into types.
+  $tokens_ios = array();
+  $tokens_android = array();
+  foreach ($tokens as $token) {
+    switch ($token['type']) {
+      case PUSH_NOTIFICATIONS_TYPE_ID_IOS:
+      $tokens_ios[] = $token['token'];
+      break;
+
+      case PUSH_NOTIFICATIONS_TYPE_ID_ANDROID:
+      $tokens_android[] = $token['token'];
+      break;
+    }
+  }
+
+  // Send payload to iOS recipients.
+  if (!empty($tokens_ios)) {
+    $result = push_notifications_apns_send_message($tokens_ios, $payload);
+  }
+  // Send payload to Android recipients if configured correctly.
+  if (!empty($tokens_android) && ((PUSH_NOTIFICATIONS_C2DM_USERNAME && PUSH_NOTIFICATIONS_C2DM_PASSWORD) || PUSH_NOTIFICATIONS_GCM_API_KEY)) {
+    // Determine which method to use for Google push notifications.
+    switch (PUSH_NOTIFICATIONS_GOOGLE_TYPE) {
+      case PUSH_NOTIFICATIONS_GOOGLE_TYPE_C2DM:
+      $result = push_notifications_c2dm_send_message($tokens_android, $payload);
+      break;
+
+      case PUSH_NOTIFICATIONS_GOOGLE_TYPE_GCM:
+      $result = push_notifications_gcm_send_message($tokens_android, $payload);
+      break;
+    }
+  }
+}
+
+
+
+/**
  * Send out push notifications through APNS.
  *
  * @param $tokens
@@ -379,6 +476,10 @@ function push_notifications_apns_send_message($tokens, $payload) {
   $payload_apns = array('aps' => array());
   foreach ($payload as $key => $value) {
     $payload_apns['aps'][$key] = $value;
+  }
+  // Set the default sound if no sound was set.
+  if (!isset($payload_apns['aps']['sound'])) {
+    $payload_apns['aps']['sound'] = PUSH_NOTIFICATIONS_APNS_NOTIFICATION_SOUND;
   }
   $payload_apns = json_encode($payload_apns);
 
@@ -638,7 +739,6 @@ function push_notifications_gcm_send_message($tokens, $payload) {
     $response = FALSE;
     if (isset($response_raw)) {
       $response = json_decode($response_raw);
-      dpm($response);
     }
 
     // If Google's server returns a reply, but that reply includes an error,
@@ -713,6 +813,41 @@ function push_notifications_get_tokens($type_id = '', $language = FALSE, $raw = 
     }
     return $tokens;
   }
+}
+
+
+
+/**
+* Determine all tokens for a specfic user.
+*
+* @param @uid
+*   User ID.
+*
+* @return
+*   Nested array of tokens, with user id, push notification type
+*   and token.
+*/
+function push_notification_get_user_tokens($uid = '') {
+  if ($uid == '' || !is_numeric($uid)) {
+    return FALSE;
+  }
+
+  // Select all tokens for this user.
+  $query = db_select('push_notifications_tokens', 'pnt');
+  $query->fields('pnt', array('token', 'uid', 'type'));
+  $query->condition('pnt.uid', $uid);
+  $result = $query->execute();
+
+  $tokens = array();
+  foreach ($result as $record) {
+    $tokens[$record->token] = array(
+      'token' => $record->token,
+      'uid' => $record->uid,
+      'type' => $record->type,
+    );
+  }
+
+  return $tokens;
 }
 
 

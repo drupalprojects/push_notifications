@@ -119,6 +119,17 @@ function push_notifications_admin_form($form_state) {
     '#default_value' => variable_get('push_notifications_require_enabled_language', 0),
   );
 
+  $replacements_privatemsg = array(
+    '!privatemsg' => l('PrivateMSG', 'http://drupal.org/project/privatemsg/', array('html' => true, 'attributes' => array('target' => '_blank'))),
+    '!privatemsg_status' => (module_exists('privatemsg')) ? 'successfully installed' : 'not installed',
+  );
+  $form['configuration_general']['push_notifications_privatemsg_integration'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Enable integration with PrivateMSG module'),
+    '#description' => t('Check this to deliver messages sent through the !privatemsg module to all recipients with at least one valid device token. Requires !privatemsg module 7.x-1.x (status: !privatemsg_status)', $replacements_privatemsg),
+    '#default_value' => variable_get('push_notifications_privatemsg_integration', 0),
+  );
+
   $configuration_apns_replacements = array(
     '!link' => l(t('this tutorial'), 'http://blog.boxedice.com/2009/07/10/how-to-build-an-apple-push-notification-provider-server-tutorial/', array('attributes' => array('target' => '_blank'))),
   );
@@ -219,7 +230,9 @@ function push_notifications_admin_form($form_state) {
  * Submit callback for push notification configuration page.
  */
 function push_notifications_admin_form_submit($form, &$form_state) {
+  // Module settings.
   variable_set('push_notifications_require_enabled_language', $form_state['values']['push_notifications_require_enabled_language']);
+  variable_set('push_notifications_privatemsg_integration', $form_state['values']['push_notifications_privatemsg_integration']);  
 
   $apns_environment = $form_state['values']['push_notifications_apns_environment'];
   switch ($apns_environment) {
