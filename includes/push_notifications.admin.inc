@@ -158,6 +158,13 @@ function push_notifications_admin_form($form_state) {
     '#default_value' => variable_get('push_notifications_apns_stream_context_limit', 5),
   );
 
+  $form['configuration_apns']['passphrase'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Passphrase'),
+    '#description' => t('If your APNS certificate has a passphrase, enter it here. Otherwise, leave this field blank.'),
+    '#default_value' => variable_get('push_notifications_apns_passphrase', ''),
+  );
+
   $form['configuration_c2dm'] = array(
     '#type' => 'fieldset',
     '#title' => t('Google Push Notifications'),
@@ -232,7 +239,7 @@ function push_notifications_admin_form($form_state) {
 function push_notifications_admin_form_submit($form, &$form_state) {
   // Module settings.
   variable_set('push_notifications_require_enabled_language', $form_state['values']['push_notifications_require_enabled_language']);
-  variable_set('push_notifications_privatemsg_integration', $form_state['values']['push_notifications_privatemsg_integration']);  
+  variable_set('push_notifications_privatemsg_integration', $form_state['values']['push_notifications_privatemsg_integration']);
 
   $apns_environment = $form_state['values']['push_notifications_apns_environment'];
   switch ($apns_environment) {
@@ -259,6 +266,9 @@ function push_notifications_admin_form_submit($form, &$form_state) {
 
   // Set GCM API key.
   variable_set('push_notifications_gcm_api_key', $form_state['values']['push_notifications_gcm_api_key']);
+
+  // Set the APNS pem file passphrase.
+  variable_set('push_notifications_apns_passphrase', $form_state['values']['passphrase']);
 
   // Set the APNS stream limit.
   variable_set('push_notifications_apns_stream_context_limit', $form_state['values']['stream_context_limit']);

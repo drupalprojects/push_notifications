@@ -233,7 +233,7 @@ function push_notifications_privatemsg_message_insert($message) {
       $recipients[] = $recipient->uid;
     }
 
-    push_notifications_send_message($recipients, $payload);    
+    push_notifications_send_message($recipients, $payload);
   }
 }
 
@@ -337,6 +337,13 @@ function push_notifications_open_apns() {
   $stream_context = stream_context_create();
   // Set options on the stream context.
   stream_context_set_option($stream_context, 'ssl', 'local_cert', $apns_cert);
+
+  //If the user has a passphrase stored, we use it.
+  $passphrase = variable_get('push_notifications_apns_passphrase', '');
+  if(strlen($passphrase)) {
+    stream_context_set_option($stream_context, 'ssl', 'passphrase', $passphrase);
+  }
+
 
   // Open an Internet socket connection.
   $apns = stream_socket_client('ssl://' . PUSH_NOTIFICATIONS_APNS_HOST . ':' . PUSH_NOTIFICATIONS_APNS_PORT, $error, $error_string, 2, STREAM_CLIENT_CONNECT, $stream_context);
