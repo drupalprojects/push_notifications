@@ -75,7 +75,7 @@ function push_notifications_menu() {
   $items['admin/config/services/push_notifications'] = array(
     'type' => MENU_NORMAL_ITEM,
     'title' => 'Push Notifications',
-    'access arguments' => array('administer site configuration'),
+    'access arguments' => array('send push notifications'),
     'page callback' => 'drupal_get_form',
     'page arguments' => array('push_notifications_admin_overview_form'),
     'description' => 'Push Notifications Settings.',
@@ -87,7 +87,7 @@ function push_notifications_menu() {
     'type' => MENU_DEFAULT_LOCAL_TASK,
     'title' => 'Overview',
     'weight' => -50,
-    'access arguments' => array('administer site configuration'),
+    'access arguments' => array('send push notifications'),
     'page callback' => 'drupal_get_form',
     'page arguments' => array('push_notifications_admin_overview_form'),
     'description' => 'Push Notifications Settings.',
@@ -109,7 +109,7 @@ function push_notifications_menu() {
   $items['admin/config/services/push_notifications/message'] = array(
     'type' => MENU_LOCAL_TASK,
     'title' => 'Send Push',
-    'access arguments' => array('administer site configuration'),
+    'access arguments' => array('send push notifications'),
     'page callback' => 'drupal_get_form',
     'page arguments' => array('push_notifications_mass_push_form'),
     'description' => 'Send a Push Notification',
@@ -145,6 +145,10 @@ function push_notifications_permission() {
     'remove device token' => array(
       'title' => t('Remove Device Token'),
       'description' => t('Allows users to remove a device token.'),
+    ),
+    'send push notifications' => array(
+      'title' => t('Send push notifications'),
+      'description' => t('Allow users to send a push notification to devices'),
     ),
   );
 }
