@@ -335,7 +335,7 @@ function push_notifications_store_token($token = '', $type_id = '', $uid = '', $
 function push_notifications_open_apns() {
   // Determine the absolute path of the certificate.
   // @see http://stackoverflow.com/questions/809682
-  $apns_cert = dirname(__FILE__) . '/certificates/' . PUSH_NOTIFICATIONS_APNS_CERTIFICATE;
+  $apns_cert = _push_notifications_get_apns_certificate();
 
   // Create a stream context.
   $stream_context = stream_context_create();
@@ -922,7 +922,7 @@ function push_notifications_purge_token($token = '') {
 function push_notifications_apns_feedback_service() {
   // Create a Stream context and open an Internet socket connection.
   $stream_context = stream_context_create();
-  $apns_cert = dirname(__FILE__) . '/certificates/' . PUSH_NOTIFICATIONS_APNS_CERTIFICATE;
+  $apns_cert = _push_notifications_get_apns_certificate();
   stream_context_set_option($stream_context, 'ssl', 'local_cert', $apns_cert);
   $apns = stream_socket_client('ssl://' . PUSH_NOTIFICATIONS_APNS_FEEDBACK_HOST . ':' . PUSH_NOTIFICATIONS_APNS_FEEDBACK_PORT, $error, $error_string, 2, STREAM_CLIENT_CONNECT, $stream_context);
   if (!$apns) {
@@ -956,4 +956,26 @@ function push_notifications_apns_feedback_service() {
   // Give some feedback after the process finished.
   watchdog('push_notifications', '!count were removed after pulling the Apple feedback service.', array('!count' => $counter));
 
+}
+
+/**
+ * Get the full path to the APNS certificate.
+ *
+ * @return string
+ *   The path to the certificate file on the server.
+ */
+function _push_notifications_get_apns_certificate() {
+  $path = variable_get('push_notifications_apns_certificate_folder', '');
+
+  if (empty($path)) {
+    $path = dirname(__FILE__) . DIRECTORY_SEPARATOR . 'certificates' . DIRECTORY_SEPARATOR;
+  }
+
+  $path .= PUSH_NOTIFICATIONS_APNS_CERTIFICATE;
+
+  if (!file_exists($path)) {
+    watchdog('push_notifications', 'Cannot find apns certificate file at @path', array('@path' => $path), WATCHDOG_WARNING, l(t('settings'), 'admin/config/services/push_notifications/configure'));
+  }
+
+  return $path;
 }

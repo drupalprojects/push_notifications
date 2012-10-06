@@ -165,6 +165,13 @@ function push_notifications_admin_form($form_state) {
     '#default_value' => variable_get('push_notifications_apns_passphrase', ''),
   );
 
+  $form['configuration_apns']['push_notifications_apns_certificate_folder'] = array(
+    '#type' => 'textfield',
+    '#title' => t('APNS Certificate Folder Path'),
+    '#description' => t('If you want to store your certificates in a different directory than the modules default (the \'certificates\' folder inside this module\'s folder), specify the path here. If you use your own path, use the full path, e.g. \'/users/danny/drupal_install/certificates/\', not the relative path. Otherwise, leave this field blank.'),
+    '#default_value' => variable_get('push_notifications_apns_certificate_folder', ''),
+  );
+
   $form['configuration_c2dm'] = array(
     '#type' => 'fieldset',
     '#title' => t('Google Push Notifications'),
@@ -266,6 +273,27 @@ function push_notifications_admin_form_submit($form, &$form_state) {
 
   // Set GCM API key.
   variable_set('push_notifications_gcm_api_key', $form_state['values']['push_notifications_gcm_api_key']);
+
+  // Set the APNS certificate location.
+  $apns_cert_folder = $form_state['values']['push_notifications_apns_certificate_folder'];
+  if (!empty($apns_cert_folder)) {
+
+    // Add a trailing slash if not present.
+    if ($apns_cert_folder[strlen($apns_cert_folder) - 1] != DIRECTORY_SEPARATOR) {
+      $apns_cert_folder .= DIRECTORY_SEPARATOR;
+    }
+
+    variable_set('push_notifications_apns_certificate_folder', $apns_cert_folder);
+    $apns_cert = _push_notifications_get_apns_certificate();
+    if (!file_exists($apns_cert)) {
+      drupal_set_message(t('Could not find any APNS certificates at @path. Please ensure your certificates are located in the correct folder to send push notifications.', array('@path' => $apns_cert)), 'warning');
+    }
+  }
+  // Remove the variable if the location field is blank
+  // but a variable had been set previously.
+  else if (variable_get('push_notifications_apns_certificate_folder', NULL)) {
+    variable_del('push_notifications_apns_certificate_folder');
+  }
 
   // Set the APNS pem file passphrase.
   variable_set('push_notifications_apns_passphrase', $form_state['values']['passphrase']);
