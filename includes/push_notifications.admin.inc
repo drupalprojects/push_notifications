@@ -414,7 +414,9 @@ function push_notifications_mass_push_form_submit($form, &$form_state) {
     // Get all iOS recipients.
     $tokens_ios = push_notifications_get_tokens(PUSH_NOTIFICATIONS_TYPE_ID_IOS, $language);
     if (!empty($tokens_ios)) {
-      $result = push_notifications_apns_send_message($tokens_ios, $payload);
+      // Convert the payload into the correct format for APNS.
+      $payload_apns = array('aps' => $payload);
+      $result = push_notifications_apns_send_message($tokens_ios, $payload_apns);
       $dsm_type = ($result['success']) ? 'status' : 'error';
       drupal_set_message($result['message'], $dsm_type);
     }

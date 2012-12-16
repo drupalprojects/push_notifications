@@ -444,7 +444,9 @@ function push_notifications_send_message($recipients, $message) {
 
   // Send payload to iOS recipients.
   if (!empty($tokens_ios)) {
-    $result = push_notifications_apns_send_message($tokens_ios, $payload);
+    // Convert the payload into the correct format for APNS.
+    $payload_apns = array('aps' => $payload);
+    $result = push_notifications_apns_send_message($tokens_ios, $payload_apns);
   }
   // Send payload to Android recipients if configured correctly.
   if (!empty($tokens_android) && ((PUSH_NOTIFICATIONS_C2DM_USERNAME && PUSH_NOTIFICATIONS_C2DM_PASSWORD) || PUSH_NOTIFICATIONS_GCM_API_KEY)) {
@@ -469,7 +471,13 @@ function push_notifications_send_message($recipients, $message) {
  * @param $tokens
  *   Array of iOS tokens
  * @param $payload
- *   Payload to send.
+ *   Payload to send. Minimum requirement
+ *   is a nested array in this format:
+ *   $payload = array(
+ *     'aps' => array(
+ *       'alert' => 'Push Notification Test',
+ *     );
+ *   );
  *
  * @return
  *   Array with the following keys:
@@ -483,15 +491,24 @@ function push_notifications_apns_send_message($tokens, $payload) {
     return FALSE;
   }
 
-  // Convert the payload into the correct format for APNS payloads.
-  $payload_apns = array('aps' => array());
+  $payload_apns = array();
+
+  // Allow for inclusion of custom payloads.
   foreach ($payload as $key => $value) {
-    $payload_apns['aps'][$key] = $value;
+    if ($key != 'aps') {
+      $payload_apns[$key] = $value;
+    }
   }
+
+  // Add the default 'aps' key for the payload.
+  $payload_apns['aps'] = $payload['aps'];
+
   // Set the default sound if no sound was set.
   if (!isset($payload_apns['aps']['sound'])) {
     $payload_apns['aps']['sound'] = PUSH_NOTIFICATIONS_APNS_NOTIFICATION_SOUND;
   }
+  
+  // JSON-encode the payload.
   $payload_apns = json_encode($payload_apns);
 
   $result = array(
