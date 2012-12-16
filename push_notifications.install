@@ -64,7 +64,7 @@ function push_notifications_schema() {
       'language' => array(
         'description' => 'Language',
         'type' => 'varchar',
-        'length' => 2,
+        'length' => 11,
         'not null' => TRUE,
       ),
     ),
@@ -125,4 +125,21 @@ function push_notifications_update_7002() {
     ),
   );
   db_change_field($table, $field, $field, $token_new, $indexes_new);
+}
+
+/**
+ * Update the language field to allow 11 characters.
+ */
+function push_notifications_update_7003() {
+  $table = 'push_notifications_tokens';
+  $field = 'language';
+
+  $language_new = array(
+    'description' => 'Language',
+    'type' => 'varchar',
+    'length' => 11,
+    'not null' => TRUE,
+  );
+
+  db_change_field($table, $field, $field, $language_new);
 }
