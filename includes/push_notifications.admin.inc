@@ -153,9 +153,9 @@ function push_notifications_admin_form($form_state) {
   $form['configuration_apns']['stream_context_limit'] = array(
     '#type' => 'select',
     '#title' => t('Stream Context Limit'),
-    '#description' => t('Defines the amount of messages sent per stream limit. Unclear (to me) what Apple\'s <em>actual</em> limit is. The higher the limit, the faster the message delivery. If the limit is too high, messages might not get delivered at all.'),
+    '#description' => t('Defines the amount of messages sent per stream limit, i.e. how many notifications are sent per connection created with Apple\'s servers. The higher the limit, the faster the message delivery. If the limit is too high, messages might not get delivered at all. Unclear (to me) what Apple\'s <em>actual</em> limit is.'),
     '#options' => drupal_map_assoc(array(1, 5, 10, 25, 50)),
-    '#default_value' => variable_get('push_notifications_apns_stream_context_limit', 5),
+    '#default_value' => variable_get('push_notifications_apns_stream_context_limit', 1),
   );
 
   $form['configuration_apns']['passphrase'] = array(

@@ -35,7 +35,7 @@ define('PUSH_NOTIFICATIONS_APNS_NOTIFICATION_SOUND', variable_get('push_notifica
 // on cron to remove unused tokens from our database.
 define('PUSH_NOTIFICATIONS_APNS_QUERY_FEEDBACK_SERVICE', variable_get('push_notifications_apns_query_feedback_service', 1));
 // Maximum of messages to send per stream context.
-define('PUSH_NOTIFICATIONS_APNS_STREAM_CONTEXT_LIMIT', variable_get('push_notifications_apns_stream_context_limit', 5));
+define('PUSH_NOTIFICATIONS_APNS_STREAM_CONTEXT_LIMIT', variable_get('push_notifications_apns_stream_context_limit', 1));
 
 //
 // Google Variables
