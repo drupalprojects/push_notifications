@@ -6,6 +6,47 @@
  */
 
 /**
+ * Implements of hook_install().
+ */
+function push_notifications_install() {
+  // Generate a random ending for APNS certificates once.
+  _push_notifications_set_random_certificate_string();
+}
+
+
+
+/**
+ * Implements of hook_uninstall().
+ */
+function push_notifications_uninstall() {
+  // Delete all variables set by module.
+  variable_del('push_notifications_type_id_ios');
+  variable_del('push_notifications_type_id_anroid');
+  variable_del('push_notifications_apns_host');
+  variable_del('push_notifications_apns_feedback_host');
+  variable_del('push_notifications_apns_certificate_random');
+  variable_del('push_notifications_apns_certificate');
+  variable_del('push_notifications_apns_notification_sound');
+  variable_del('push_notifications_apns_query_feedback_service');
+  variable_del('push_notifications_apns_stream_context_limit');
+  variable_del('push_notifications_apns_environment');
+  variable_del('push_notifications_apns_passphrase');
+  variable_del('push_notifications_apns_certificate_folder');
+  variable_del('push_notifications_google_type');
+  variable_del('push_notifications_c2dm_username');
+  variable_del('push_notifications_c2dm_password');
+  variable_del('push_notifications_c2dm_client_login_action_url');
+  variable_del('push_notifications_c2dm_server_post_url');
+  variable_del('push_notifications_gcm_project_id');
+  variable_del('push_notifications_gcm_api_key');
+  variable_del('push_notifications_gcm_server_post_url');
+  variable_del('push_notifications_privatemsg_integration');
+  variable_del('push_notifications_require_enabled_language');
+}
+
+
+
+/**
  * Implements hook_field_scheme().
  */
 function push_notifications_schema() {

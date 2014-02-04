@@ -25,8 +25,10 @@ define('PUSH_NOTIFICATIONS_APNS_PORT', 2195);
 define('PUSH_NOTIFICATIONS_APNS_FEEDBACK_HOST', variable_get('push_notifications_apns_feedback_host', 'feedback.push.apple.com'));
 // Apple Feedback Server port.
 define('PUSH_NOTIFICATIONS_APNS_FEEDBACK_PORT', 2196);
+// Random suffix for certificate string.
+define('PUSH_NOTIFICATIONS_APNS_CERTIFICATE_RANDOM', variable_get('push_notifications_apns_certificate_random', ''));
 // Name of certificate, initially set to development certificate.
-define('PUSH_NOTIFICATIONS_APNS_CERTIFICATE', variable_get('push_notifications_apns_certificate', 'apns-production.pem'));
+define('PUSH_NOTIFICATIONS_APNS_CERTIFICATE', variable_get('push_notifications_apns_certificate', 'apns-production' . PUSH_NOTIFICATIONS_APNS_CERTIFICATE_RANDOM . '.pem'));
 // Size limit for individual payload, in bytes.
 define('PUSH_NOTIFICATIONS_APNS_PAYLOAD_SIZE_LIMIT', 255);
 // Payload sound
@@ -36,6 +38,7 @@ define('PUSH_NOTIFICATIONS_APNS_NOTIFICATION_SOUND', variable_get('push_notifica
 define('PUSH_NOTIFICATIONS_APNS_QUERY_FEEDBACK_SERVICE', variable_get('push_notifications_apns_query_feedback_service', 1));
 // Maximum of messages to send per stream context.
 define('PUSH_NOTIFICATIONS_APNS_STREAM_CONTEXT_LIMIT', variable_get('push_notifications_apns_stream_context_limit', 1));
+
 
 //
 // Google Variables
@@ -222,8 +225,8 @@ function push_notifications_services_resources() {
 
 
 /**
-* Implements hook_privatemsg_message_insert.
-*/
+ * Implements hook_privatemsg_message_insert.
+ */
 function push_notifications_privatemsg_message_insert($message) {
   if (variable_get('push_notifications_privatemsg_integration', 0)) {
     // Compose the payload. If the body is empty, just use the subject line.
@@ -389,13 +392,13 @@ function push_notifications_check_payload_size($payload = '') {
 
 
 /**
-* Send out push notifications, switch automatically between delivery method.
-*
-* @param $recipients
-*   Array of user ids.
-* @param $message
-*   Payload to send.
-*/
+ * Send out push notifications, switch automatically between delivery method.
+ *
+ * @param $recipients
+ *   Array of user ids.
+ * @param $message
+ *   Payload to send.
+ */
 function push_notifications_send_message($recipients, $message) {
   if (!is_array($recipients) || !is_string($message)) {
     return FALSE;
@@ -507,7 +510,7 @@ function push_notifications_apns_send_message($tokens, $payload) {
   if (!isset($payload_apns['aps']['sound'])) {
     $payload_apns['aps']['sound'] = PUSH_NOTIFICATIONS_APNS_NOTIFICATION_SOUND;
   }
-  
+
   // JSON-encode the payload.
   $payload_apns = json_encode($payload_apns);
 
@@ -800,18 +803,18 @@ function push_notifications_gcm_send_message($tokens, $payload) {
 
 
 /**
-  * Determine all recipients from a specific device type.
-  *
-  * @param $type_id
-  *   Device Type ID.
-  * @param $language
-  *   Language code, optional.
-  * @param $raw
-  *   Boolean, set true to retrieve the raw query results.
-  *
-  * @return
-  *   Array of results, null if no entries.
-  */
+ * Determine all recipients from a specific device type.
+ *
+ * @param $type_id
+ *   Device Type ID.
+ * @param $language
+ *   Language code, optional.
+ * @param $raw
+ *   Boolean, set true to retrieve the raw query results.
+ *
+ * @return
+ *   Array of results, null if no entries.
+ */
 function push_notifications_get_tokens($type_id = '', $language = FALSE, $raw = FALSE) {
   // Make sure this type_id is supported.
   $valid_type_ids = array(PUSH_NOTIFICATIONS_TYPE_ID_IOS, PUSH_NOTIFICATIONS_TYPE_ID_ANDROID);
@@ -846,15 +849,15 @@ function push_notifications_get_tokens($type_id = '', $language = FALSE, $raw = 
 
 
 /**
-* Determine all tokens for a specfic user.
-*
-* @param @uid
-*   User ID.
-*
-* @return
-*   Nested array of tokens, with user id, push notification type
-*   and token.
-*/
+ * Determine all tokens for a specfic user.
+ *
+ * @param @uid
+ *   User ID.
+ *
+ * @return
+ *   Nested array of tokens, with user id, push notification type
+ *   and token.
+ */
 function push_notification_get_user_tokens($uid = '') {
   if ($uid == '' || !is_numeric($uid)) {
     return FALSE;
@@ -995,4 +998,15 @@ function _push_notifications_get_apns_certificate() {
   }
 
   return $path;
+}
+
+
+
+/**
+* Generate and set the random file ending for APNS certificates.
+*/
+function _push_notifications_set_random_certificate_string() {
+  // Generate a random 10-digit string.
+  $random_string = substr(md5(microtime()), 0, 10);
+  variable_set('push_notifications_apns_certificate_random', '-' . $random_string);
 }

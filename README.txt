@@ -26,16 +26,19 @@ click on "Send Push Message".
 
 
 
-APNS Key Generation
-===================
+Apple Push Notification Service (APNS)
+======================================
+
+APNS Certificates
+-----------------
 APNS requires a certificate file. Apple distinguishes between development
 certificates (used for development versions of your iOS app) and production
-certificates (used when you iOS app is available in the app store). Both
-environments require the proper certificates in the 'certificates' folder
-of this module. The filename for the development certificate should be
-'apns-development.pem', the production certificate should be
-'apns-production.pem'.
+certificates (used when your iOS app is available in the app store). An
+incorrectly generated or missing certificate will prevent you from sending
+any push notifications.
 
+How to generate your certificate
+--------------------------------
 The generation for either certificate is explained in this tutorial
 (http://blog.boxedice.com/2009/07/10/how-to-build-an-apple-push-notification-provider-server-tutorial/),
 here is a summary of the essential steps:
@@ -67,9 +70,29 @@ converting or execute:
 10. Finally, you need to combine the key and cert files into a apns-dev.pem
 file we will use when connecting to APNS:
   cat apns-dev-cert.pem apns-dev-key-noenc.pem > apns-dev.pem
-11. Rename this file to 'apns-development.pem' for the development certificate
-and 'apns-production.pem' for the production certificate and copy the files into
+11. Rename this file to 'apns-development-[randomstring].pem' for the development certificate
+and 'apns-production-[randomstring].pem' for the production certificate and copy the files into
 the 'certificates' folder where you installed this module
+
+How to name your certificates files
+-----------------------------------
+The filename for the development certificate should be
+'apns-development-[randomstring].pem', the filename for the  production certificate
+should be 'apns-production-[randomstring].pem'. You can find the exact filename on
+the Push Notification module configuration page (admin/config/services/push_notifications/configure)
+under "APPLE PUSH NOTIFICATIONS".
+
+Where to put certificate files
+------------------------------
+For best security, place the certificates into a folder outside of your webroot,
+i.e. a directory that's not accessible through the Internet. Set the path for
+your certificates on the Push Notification module configuration page
+(admin/config/services/push_notifications/configure) under
+"APNS Certificate Folder Path".
+
+Alternatively, you can put the certificates into the 'certificates' folder
+of the push notification module. In this case, leave the "APNS Certificate Folder Path"
+field on the Push Notification module configuration page blank.
 
 
 

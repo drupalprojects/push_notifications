@@ -132,11 +132,31 @@ function push_notifications_admin_form($form_state) {
 
   $configuration_apns_replacements = array(
     '!link' => l(t('this tutorial'), 'http://blog.boxedice.com/2009/07/10/how-to-build-an-apple-push-notification-provider-server-tutorial/', array('attributes' => array('target' => '_blank'))),
+    '!cert_name_development' => 'apns-development' . PUSH_NOTIFICATIONS_APNS_CERTIFICATE_RANDOM . '.pem',
+    '!cert_name_production' => 'apns-production' . PUSH_NOTIFICATIONS_APNS_CERTIFICATE_RANDOM . '.pem',
   );
   $form['configuration_apns'] = array(
     '#type' => 'fieldset',
     '#title' => t('Apple Push Notifications'),
-    '#description' => t('Configure Push Notifications for Apple\'s Push Notification Server. Select your environment. Both environments require the proper certificates in the \'certificates\' folder of this module. The filename for the development certificate should be \'apns-development.pem\', the production certificate should be \'apns-production.pem\'. See !link for instructions on creating certificates.', $configuration_apns_replacements),
+    '#description' => t('Configure Push Notifications for Apple\'s Push Notification Server. Select your environment. Both environments require the proper certificates in the \'certificates\' folder of this module.<br />The filename for the development certificate should be \'!cert_name_development\', the production certificate should be \'!cert_name_production\'. See !link for instructions on creating certificates.', $configuration_apns_replacements),
+  );
+
+  if (variable_get('push_notifications_apns_certificate_random', '') == '') {
+    $regenerate_certificate_string_description = t('Your certificate name is currently set to the default. To increase security, click here to create a custom name for your APNS certificates. Please note that you will have to change the filenames for both certificate files afterwards.');
+  }
+  else {
+    $regenerate_certificate_string_description = t('You are already using a random certificate name. Click here to create a new random name for your APNS certificates. Please note that you will have to update the filenames for both certificate files accordingly.');
+  }
+  $form['configuration_apns']['regenerate_certificate_string_description'] = array(
+    '#type' => 'item',
+    '#title' => t('APNS Certificate Name'),
+    '#markup' => $regenerate_certificate_string_description,
+  );
+
+  $form['configuration_apns']['regenerate_certificate_string'] = array(
+    '#type' => 'submit',
+    '#value' => t('Generate new certificate string'),
+    '#submit' => array('push_notifications_regenerate_certificate_string_submit'),
   );
 
   $form['configuration_apns']['push_notifications_apns_environment'] = array(
@@ -168,7 +188,7 @@ function push_notifications_admin_form($form_state) {
   $form['configuration_apns']['push_notifications_apns_certificate_folder'] = array(
     '#type' => 'textfield',
     '#title' => t('APNS Certificate Folder Path'),
-    '#description' => t('If you want to store your certificates in a different directory than the modules default (the \'certificates\' folder inside this module\'s folder), specify the path here. If you use your own path, use the full path, e.g. \'/users/danny/drupal_install/certificates/\', not the relative path. Otherwise, leave this field blank.'),
+    '#description' => t('The preferred location for the certificate files is a folder outside of your web root, i.e. a folder not accessible through the Internet. Specify the full path here, e.g. \'/users/danny/drupal_install/certificates/\'. If you are using the \'certificates\' folder within the module directory, leave this field blank.'),
     '#default_value' => variable_get('push_notifications_apns_certificate_folder', ''),
   );
 
@@ -241,6 +261,21 @@ function push_notifications_admin_form($form_state) {
 
 
 /**
+ * Validation handler for push notification configuration form.
+ */
+function push_notifications_admin_form_validate($form, &$form_state) {
+  // If custom certificate directory is set, ensure the directory exists.
+  $custom_dir = $form_state['values']['push_notifications_apns_certificate_folder'];
+  if (!empty($custom_dir)) {
+    if (!file_exists(check_plain($custom_dir))) {
+      form_set_error('push_notifications_apns_certificate_folder', t('Custom certificate directory does not exist. Please create the path before saving your configuration.'));
+    }
+  }
+}
+
+
+
+/**
  * Submit callback for push notification configuration page.
  */
 function push_notifications_admin_form_submit($form, &$form_state) {
@@ -256,14 +291,14 @@ function push_notifications_admin_form_submit($form, &$form_state) {
       variable_set('push_notifications_apns_environment', $apns_environment);
       // Set the individual variables.
       variable_set('push_notifications_apns_host', 'gateway.sandbox.push.apple.com');
-      variable_set('push_notifications_apns_certificate', 'apns-development.pem');
+      variable_set('push_notifications_apns_certificate', 'apns-development' . PUSH_NOTIFICATIONS_APNS_CERTIFICATE_RANDOM . '.pem');
       break;
     case 1:
       // Set the variables for the apns production environment.
       variable_set('push_notifications_apns_environment', $apns_environment);
       // Set the individual variables.
       variable_set('push_notifications_apns_host', 'gateway.push.apple.com');
-      variable_set('push_notifications_apns_certificate', 'apns-production.pem');
+      variable_set('push_notifications_apns_certificate', 'apns-production' . PUSH_NOTIFICATIONS_APNS_CERTIFICATE_RANDOM . '.pem');
       break;
   }
 
@@ -275,24 +310,22 @@ function push_notifications_admin_form_submit($form, &$form_state) {
   variable_set('push_notifications_gcm_api_key', $form_state['values']['push_notifications_gcm_api_key']);
 
   // Set the APNS certificate location.
-  $apns_cert_folder = $form_state['values']['push_notifications_apns_certificate_folder'];
+  $apns_cert_folder = check_plain($form_state['values']['push_notifications_apns_certificate_folder']);
   if (!empty($apns_cert_folder)) {
-
     // Add a trailing slash if not present.
     if ($apns_cert_folder[strlen($apns_cert_folder) - 1] != DIRECTORY_SEPARATOR) {
       $apns_cert_folder .= DIRECTORY_SEPARATOR;
     }
-
     variable_set('push_notifications_apns_certificate_folder', $apns_cert_folder);
-    $apns_cert = _push_notifications_get_apns_certificate();
-    if (!file_exists($apns_cert)) {
-      drupal_set_message(t('Could not find any APNS certificates at @path. Please ensure your certificates are located in the correct folder to send push notifications.', array('@path' => $apns_cert)), 'warning');
-    }
   }
-  // Remove the variable if the location field is blank
-  // but a variable had been set previously.
-  else if (variable_get('push_notifications_apns_certificate_folder', NULL)) {
+  else {
     variable_del('push_notifications_apns_certificate_folder');
+  }
+
+  // Check if the certificate exists.
+  $apns_cert = _push_notifications_get_apns_certificate();
+  if (!file_exists($apns_cert)) {
+    drupal_set_message(t('Could not find any APNS certificates at @path. Please ensure your certificates are located in the correct folder to send push notifications and are named correctly.', array('@path' => $apns_cert)), 'warning', FALSE);
   }
 
   // Set the APNS pem file passphrase.
@@ -305,6 +338,17 @@ function push_notifications_admin_form_submit($form, &$form_state) {
     '@environment' => ($apns_environment) ? "Production" : "Development",
   );
   drupal_set_message(t('The APNS environment was successfully set to "@environment".', $replacements));
+}
+
+
+
+/**
+* Form callback for regenerating the APNS certificate string.
+*/
+function push_notifications_regenerate_certificate_string_submit($form, &$form_state) {
+  _push_notifications_set_random_certificate_string();
+  drupal_set_message('The names for your APNS certificates were successfully changed. Please rename both certificate files.');
+  drupal_goto('admin/config/services/push_notifications/configure');
 }
 
 
@@ -368,7 +412,7 @@ function push_notifications_mass_push_form($form_state) {
 
 
 /**
- * Submit handler for sending out a mass-push notification.
+ * Validation handler for sending out a mass-push notification.
  */
 function push_notifications_mass_push_form_validate($form, &$form_state) {
   $recipients = $form_state['values']['recipients'];
