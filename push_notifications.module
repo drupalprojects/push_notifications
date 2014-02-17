@@ -925,6 +925,9 @@ function push_notifications_purge_token($token = '') {
     return FALSE;
   }
 
+  // Allows other modules to respond to a token being purged.
+  module_invoke_all('push_notifications_purge_token', $token);
+
   $query = db_delete('push_notifications_tokens');
   $query->condition('token', $token);
   return $query->execute();

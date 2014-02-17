@@ -27,3 +27,14 @@ function hook_push_notifications_store_token(&$token, $type_id, $uid) {
     $token = NULL;
   }
 }
+
+/**
+ * Allows a module to respond to a token being purged.
+ *
+ * @param string $token
+ *   Token being purged.
+ *
+ */
+function hook_push_notifications_purge_token($token) {
+
+}
