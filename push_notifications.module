@@ -345,9 +345,9 @@ function push_notifications_open_apns() {
   // Set options on the stream context.
   stream_context_set_option($stream_context, 'ssl', 'local_cert', $apns_cert);
 
-  //If the user has a passphrase stored, we use it.
+  // If the user has a passphrase stored, we use it.
   $passphrase = variable_get('push_notifications_apns_passphrase', '');
-  if(strlen($passphrase)) {
+  if (strlen($passphrase)) {
     stream_context_set_option($stream_context, 'ssl', 'passphrase', $passphrase);
   }
 
@@ -947,6 +947,13 @@ function push_notifications_apns_feedback_service() {
   $stream_context = stream_context_create();
   $apns_cert = _push_notifications_get_apns_certificate();
   stream_context_set_option($stream_context, 'ssl', 'local_cert', $apns_cert);
+
+  // If the user has a passphrase stored, we use it.
+  $passphrase = variable_get('push_notifications_apns_passphrase', '');
+  if (strlen($passphrase)) {
+    stream_context_set_option($stream_context, 'ssl', 'passphrase', $passphrase);
+  }
+
   $apns = stream_socket_client('ssl://' . PUSH_NOTIFICATIONS_APNS_FEEDBACK_HOST . ':' . PUSH_NOTIFICATIONS_APNS_FEEDBACK_PORT, $error, $error_string, 2, STREAM_CLIENT_CONNECT, $stream_context);
   if (!$apns) {
     return;
