@@ -556,6 +556,9 @@ function push_notifications_apns_send_message($tokens, $payload) {
     // at the beginning of this loop.
     if ($stream_counter >= PUSH_NOTIFICATIONS_APNS_STREAM_CONTEXT_LIMIT) {
       $stream_counter = 0;
+      if ($apns) {
+        fclose($apns);
+      }
     }
   }
 
