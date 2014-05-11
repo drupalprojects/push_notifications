@@ -81,6 +81,11 @@ function push_notifications_schema() {
   $schema['push_notifications_tokens'] = array(
     'description' => 'Stores device tokens',
     'fields' => array(
+	    'id' => array(
+	      'description' => t('Push Notification auto-increment ID.'),
+	      'type' => 'serial',
+	      'not null' => TRUE,
+	    ),
       'token' => array(
         'description' => 'Device Token',
         'type' => 'varchar',
@@ -109,12 +114,13 @@ function push_notifications_schema() {
         'not null' => TRUE,
       ),
     ),
-    'primary key' => array('token', 'uid'),
+    'primary key' => array('id'),
     'indexes' => array(
       'timestamp' => array('timestamp'),
       'token' => array('token'),
       'type' => array('type'),
       'language' => array('language'),
+      'token_uid' => array('token', 'uid'),
     ),
   );
 
@@ -183,4 +189,32 @@ function push_notifications_update_7003() {
   );
 
   db_change_field($table, $field, $field, $language_new);
+}
+
+/**
+* Implements hook_update_n.
+*
+* Add auto-increment field to push_notifications_tokens
+* table for integration with Views.
+*
+*/
+function push_notifications_update_7004() {
+  $table = 'push_notifications_tokens';
+
+  // Drop all indexes using the token field.
+  db_drop_primary_key($table);
+
+  // Add id field.
+  $id_field_spec = array(
+    'description' => t('Push Notification auto-increment ID.'),
+    'type' => 'serial',
+    'not null' => TRUE,
+  );
+  $id_field_index = array(
+    'primary key' => array('id'),
+  );
+  db_add_field($table, 'id', $id_field_spec, $id_field_index);
+
+  // Add token_uid index.
+  db_add_index($table, 'token_uid', array('token', 'uid'));
 }

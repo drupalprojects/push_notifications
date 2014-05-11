@@ -225,6 +225,18 @@ function push_notifications_services_resources() {
 
 
 /**
+ * Implements of hook_views_api().
+ */
+function push_notifications_views_api() {
+  return array(
+    'api' => 3,
+    'path' => drupal_get_path('module', 'push_notifications') . '/includes',
+  );
+}
+
+
+
+/**
  * Implements hook_privatemsg_message_insert.
  */
 function push_notifications_privatemsg_message_insert($message) {
