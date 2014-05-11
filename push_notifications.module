@@ -593,14 +593,18 @@ function push_notifications_apns_send_message($tokens, $payload) {
     // at the beginning of this loop.
     if ($stream_counter >= PUSH_NOTIFICATIONS_APNS_STREAM_CONTEXT_LIMIT) {
       $stream_counter = 0;
-      if ($apns) {
+      if (is_resource($apns)) {
         fclose($apns);
       }
     }
   }
 
-  // Close the apns connection.
-  fclose($apns);
+  // Close the apns connection if it hasn't already been closed.
+  // Need to check if $apns is a resource, as pointer will not
+  // be closed by fclose.
+  if (is_resource($apns)) {
+    fclose($apns);
+  }
 
   $result['message'] = t('Successfully sent !count_success iOS push messages (attempted to send !count messages).', array('!count_success' => $result['count_success'], '!count' => $result['count_attempted']));
   $result['success'] = TRUE;
