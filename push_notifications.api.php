@@ -33,8 +33,10 @@ function hook_push_notifications_store_token(&$token, $type_id, $uid) {
  *
  * @param string $token
  *   Token being purged.
+ * @param int $type_id
+ *   Device type id.
  *
  */
-function hook_push_notifications_purge_token($token) {
+function hook_push_notifications_purge_token($token, $type_id) {
 
 }

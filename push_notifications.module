@@ -308,6 +308,17 @@ function push_notifications_store_token($token = '', $type_id = '', $uid = '', $
     $function($token, $type_id, $uid);
   }
 
+  // Invoke rules.
+  if (module_exists('rules')) {
+    rules_invoke_event_by_args('push_notifications_before_token_insert', array(
+        'token' => $token,
+        'type_id' => $type_id,
+        'uid' => $uid,
+        'language' => $language,
+      )
+    );
+  }
+
   if (!is_string($token) || !is_numeric($type_id) || !is_numeric($uid)) {
     return FALSE;
   }
@@ -326,7 +337,21 @@ function push_notifications_store_token($token = '', $type_id = '', $uid = '', $
   $record->type = $type_id;
   $record->language = $language;
   $record->timestamp = time();
-  return drupal_write_record($table, $record);
+  $result = drupal_write_record($table, $record);
+
+  // Invoke rules.
+  if (module_exists('rules')) {
+    rules_invoke_event_by_args('push_notifications_after_token_insert', array(
+        'token' => $token,
+        'type_id' => $type_id,
+        'uid' => $uid,
+        'language' => $language,
+        'result' => $result,
+      )
+    );
+  }
+
+  return $result;
 }
 
 
@@ -567,6 +592,20 @@ function push_notifications_apns_send_message($tokens, $payload) {
 
   $result['message'] = t('Successfully sent !count_success iOS push messages (attempted to send !count messages).', array('!count_success' => $result['count_success'], '!count' => $result['count_attempted']));
   $result['success'] = TRUE;
+
+  // Invoke rules.
+  if (module_exists('rules')) {
+    rules_invoke_event_by_args('push_notifications_after_apns_send', array(
+        'type_id' => PUSH_NOTIFICATIONS_TYPE_ID_IOS,
+        'payload' => $payload,
+        'count_attempted' => $result['count_attempted'],
+        'count_success' => $result['count_success'],
+        'success' => $result['success'],
+        'result_message' => $result['message'],
+      )
+    );
+  }
+
   return $result;
 }
 
@@ -684,7 +723,7 @@ function push_notifications_c2dm_send_message($tokens, $payload) {
       // If the device token is invalid or not registered (anymore because the user
       // has uninstalled the application), remove this device token.
       if (preg_match('/InvalidRegistration/', $response) || preg_match('/NotRegistered/', $response)) {
-        push_notifications_purge_token($token);
+        push_notifications_purge_token($token, PUSH_NOTIFICATIONS_TYPE_ID_ANDROID);
         watchdog('daddyhunt_apns', 'C2DM token not valid anymore. Removing token ' . $token);
       }
     }
@@ -698,6 +737,21 @@ function push_notifications_c2dm_send_message($tokens, $payload) {
 
   $result['message'] = t('Successfully sent !count_success Android push messages (attempted to send !count messages).', array('!count_success' => $result['count_success'], '!count' => $result['count_attempted']));
   $result['success'] = TRUE;
+
+  // Invoke rules.
+  if (module_exists('rules')) {
+    rules_invoke_event_by_args('push_notifications_after_c2dm_send', array(
+        'type_id' => PUSH_NOTIFICATIONS_TYPE_ID_ANDROID,
+        'payload' => $payload,
+        'count_attempted' => $result['count_attempted'],
+        'count_success' => $result['count_success'],
+        'success' => $result['success'],
+        'result_message' => $result['message'],
+      )
+    );
+  }
+
+
   return $result;
 }
 
@@ -786,7 +840,7 @@ function push_notifications_gcm_send_message($tokens, $payload) {
           // If the device token is invalid or not registered (anymore because the user
           // has uninstalled the application), remove this device token.
           if ($message_result->error == 'NotRegistered' || $message_result->error == 'InvalidRegistration') {
-            push_notifications_purge_token($bundle_tokens[$token_index]);
+            push_notifications_purge_token($bundle_tokens[$token_index], PUSH_NOTIFICATIONS_TYPE_ID_ANDROID);
             watchdog('push_notifications', 'GCM token not valid anymore. Removing token ' . $bundle_tokens[$token_index]);
           }
         }
@@ -801,6 +855,20 @@ function push_notifications_gcm_send_message($tokens, $payload) {
 
   $result['message'] = t('Successfully sent !count_success Android push messages (attempted to send !count messages).', array('!count_success' => $result['count_success'], '!count' => $result['count_attempted']));
   $result['success'] = TRUE;
+
+  // Invoke rules.
+  if (module_exists('rules')) {
+    rules_invoke_event_by_args('push_notifications_after_gcm_send', array(
+        'type_id' => PUSH_NOTIFICATIONS_TYPE_ID_ANDROID,
+        'payload' => $payload,
+        'count_attempted' => $result['count_attempted'],
+        'count_success' => $result['count_success'],
+        'success' => $result['success'],
+        'result_message' => $result['message'],
+      )
+    );
+  }
+
   return $result;
 }
 
@@ -922,18 +990,43 @@ function push_notifications_used_languages() {
  * Delete a token.
  *
  * @param $token
+ *   Device token.
+ *
+ * @param $type_id
+ *   Device Type ID.
+ *
  */
-function push_notifications_purge_token($token = '') {
+function push_notifications_purge_token($token = '', $type_id = '') {
   if ($token == '' || !is_string($token)) {
     return FALSE;
   }
 
   // Allows other modules to respond to a token being purged.
-  module_invoke_all('push_notifications_purge_token', $token);
+  module_invoke_all('push_notifications_purge_token', $token, $type_id);
+
+  // Invoke rules.
+  if (module_exists('rules')) {
+    rules_invoke_event_by_args('push_notifications_before_token_delete', array(
+        'token' => $token,
+        'type_id' => $type_id,
+      )
+    );
+  }
 
   $query = db_delete('push_notifications_tokens');
   $query->condition('token', $token);
-  return $query->execute();
+  $result = $query->execute();
+
+  // Invoke rules.
+  if (module_exists('rules')) {
+    rules_invoke_event_by_args('push_notifications_after_token_delete', array(
+        'token' => $token,
+        'type_id' => $type_id,
+      )
+    );
+  }
+
+  return $result;
 }
 
 
@@ -982,8 +1075,16 @@ function push_notifications_apns_feedback_service() {
   // Remove all tokens that are not valid anymore.
   $counter = 0;
   foreach ($tokens as $token) {
-    push_notifications_purge_token($token['devtoken']);
+    push_notifications_purge_token($token['devtoken'], PUSH_NOTIFICATIONS_TYPE_ID_IOS);
     $counter++;
+  }
+
+  // Invoke rules.
+  if (module_exists('rules')) {
+    rules_invoke_event_by_args('push_notifications_after_apns_feedback', array(
+        'counter' => $counter,
+      )
+    );
   }
 
   // Give some feedback after the process finished.
