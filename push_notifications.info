@@ -4,5 +4,7 @@ package = other
 core = 7.x
 files[] = push_notifications.install
 files[] = push_notifications.module
+files[] = views/push_notifications_views_handler_field_push_notifications_type.inc
+files[] = views/push_notifications_views_handler_filter_push_notifications_type.inc
 configure = admin/config/services/push_notifications
 dependencies[] = services

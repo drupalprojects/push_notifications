@@ -230,7 +230,7 @@ function push_notifications_services_resources() {
 function push_notifications_views_api() {
   return array(
     'api' => 3,
-    'path' => drupal_get_path('module', 'push_notifications') . '/includes',
+    'path' => drupal_get_path('module', 'push_notifications') . '/views',
   );
 }
 

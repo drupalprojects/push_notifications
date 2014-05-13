@@ -66,12 +66,13 @@ function push_notifications_views_data() {
   // Device Type.
   $data['push_notifications_tokens']['type'] = array(
     'title' => t('Device Type ID'),
-    'help' => t('Device Types (0 => iOS, 1 => Android)'),
+    'help' => t('Device Type (iOS or Android)'),
     'field' => array(
-      'handler' => 'views_handler_field',
+      'handler' => 'push_notifications_views_handler_field_push_notifications_type',
+      'click sortable' => TRUE,
     ),
     'filter' => array(
-      'handler' => 'views_handler_filter_numeric',
+      'handler' => 'push_notifications_views_handler_filter_push_notifications_type',
     ),
     'sort' => array(
       'handler' => 'views_handler_sort',
@@ -119,4 +120,24 @@ function push_notifications_views_data() {
   }
 
   return $data;
+}
+
+
+/**
+ * Implements hook_views_handlers().
+ */
+function push_notifications_views_handlers() {
+  return array(
+    'info' => array(
+      'path' => drupal_get_path('module', 'push_notifications') . '/views',
+    ),
+    'handlers' => array(
+      'push_notifications_views_handler_filter_push_notifications_type' => array(
+        'parent' => 'views_handler_filter_in_operator',
+      ),
+      'push_notifications_views_handler_field_push_notifications_type' => array(
+        'parent' => 'views_handler_field',
+      ),
+    ),
+  );
 }

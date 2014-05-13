@@ -1,13 +1,13 @@
 <?php
 
 /**
- * @file
- * Views integration for the push_notifications module.
- */
+* @file
+* Views integration for the push_notifications module.
+*/
 
 /**
- * Implements hook_views_default_views().
- */
+* Implements hook_views_default_views().
+*/
 function push_notifications_views_default_views() {
   $view = new view();
   $view->name = 'push_tokens';
@@ -84,10 +84,6 @@ function push_notifications_views_default_views() {
   $handler->display->display_options['fields']['name']['field'] = 'name';
   $handler->display->display_options['fields']['name']['relationship'] = 'uid';
   $handler->display->display_options['fields']['name']['label'] = 'Username';
-  /* Field: Push Notifications: Device Type ID */
-  $handler->display->display_options['fields']['type']['id'] = 'type';
-  $handler->display->display_options['fields']['type']['table'] = 'push_notifications_tokens';
-  $handler->display->display_options['fields']['type']['field'] = 'type';
   /* Field: Push Notifications: Timestamp */
   $handler->display->display_options['fields']['timestamp']['id'] = 'timestamp';
   $handler->display->display_options['fields']['timestamp']['table'] = 'push_notifications_tokens';
@@ -100,6 +96,12 @@ function push_notifications_views_default_views() {
   $handler->display->display_options['fields']['token_1']['alter']['max_length'] = '50';
   $handler->display->display_options['fields']['token_1']['alter']['word_boundary'] = FALSE;
   $handler->display->display_options['fields']['token_1']['alter']['trim'] = TRUE;
+  /* Field: Push Notifications: Device Type ID */
+  $handler->display->display_options['fields']['type']['id'] = 'type';
+  $handler->display->display_options['fields']['type']['table'] = 'push_notifications_tokens';
+  $handler->display->display_options['fields']['type']['field'] = 'type';
+  $handler->display->display_options['fields']['type']['label'] = 'Device Type';
+  $handler->display->display_options['fields']['type']['element_label_colon'] = FALSE;
 
   $views = array();
   $views[$view->name] = $view;
