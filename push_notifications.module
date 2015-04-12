@@ -245,13 +245,32 @@ function push_notifications_privatemsg_message_insert($message) {
     // Otherwise, combine subject and body.
     $payload = (empty($message->body)) ? $message->subject : $message->subject . ' ' . $message->body;
     $payload = 'From ' . $message->author->name . ': ' . $payload;
-
     // Compose an array of recipients.
     $recipients = array();
-    foreach ($message->recipients as $recipient) {
-      $recipients[] = $recipient->uid;
-    }
 
+    foreach ($message->recipients as $recipient) {
+      if ($recipient->type == "role" && $recipient->name != 'authenticated user') {
+        $results = db_select('users_roles', 'ur')
+          ->fields('ur', array('uid'))
+          ->condition('ur.rid', $recipient->rid, '=')
+          ->execute()
+          ->fetchCol();
+      }
+      elseif ($recipient->type == "role" && $recipient->name == 'authenticated user') {
+        $results = db_select('users', 'u')
+          ->fields('u')
+          ->execute()
+          ->fetchCol();
+      }
+      if ($recipient->type == "role") {
+        foreach ($results as $result) {
+          $recipients[] = $result;
+        }
+      }
+      else {
+        $recipients[] = $recipient->uid;
+      }
+    }
     push_notifications_send_message($recipients, $payload);
   }
 }
