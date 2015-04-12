@@ -1,6 +1,6 @@
 name = Push Notifications
 description = "Push notification functionality for iPhone and Android"
-package = other
+package = Other
 core = 7.x
 files[] = push_notifications.install
 files[] = push_notifications.module
