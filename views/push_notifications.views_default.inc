@@ -11,7 +11,7 @@
 function push_notifications_views_default_views() {
   $view = new view();
   $view->name = 'push_tokens';
-  $view->description = '';
+  $view->description = 'Displays a list of push notification tokens and related user information.';
   $view->tag = 'default';
   $view->base_table = 'push_notifications_tokens';
   $view->human_name = 'Push Tokens';
