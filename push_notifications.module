@@ -142,16 +142,20 @@ function push_notifications_cron() {
 function push_notifications_permission() {
   return array(
     'register device token' => array(
-      'title' => t('Register Device Token'),
+      'title' => t('Register device token'),
       'description' => t('Allows users to register a device token.'),
     ),
     'remove device token' => array(
-      'title' => t('Remove Device Token'),
+      'title' => t('Remove device token'),
       'description' => t('Allows users to remove a device token.'),
     ),
     'send push notifications' => array(
       'title' => t('Send push notifications'),
-      'description' => t('Allow users to send a push notification to devices'),
+      'description' => t('Allow users to send push notifications to devices.'),
+    ),
+    'view device tokens' => array(
+      'title' => t('View device tokens'),
+      'description' => t('Allow users to view device tokens.'),
     ),
   );
 }

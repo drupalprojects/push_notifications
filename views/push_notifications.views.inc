@@ -65,7 +65,7 @@ function push_notifications_views_data() {
 
   // Device Type.
   $data['push_notifications_tokens']['type'] = array(
-    'title' => t('Device Type ID'),
+    'title' => t('Device Type'),
     'help' => t('Device Type (iOS or Android)'),
     'field' => array(
       'handler' => 'push_notifications_views_handler_field_push_notifications_type',
@@ -98,7 +98,7 @@ function push_notifications_views_data() {
     ),
   );
 
-  // Language field
+  // Language.
   if (module_exists('locale')) {
     $data['push_notifications_tokens']['language'] = array(
       'title' => t('Language'),
