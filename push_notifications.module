@@ -30,7 +30,7 @@ define('PUSH_NOTIFICATIONS_APNS_CERTIFICATE_RANDOM', variable_get('push_notifica
 // Name of certificate, initially set to development certificate.
 define('PUSH_NOTIFICATIONS_APNS_CERTIFICATE', variable_get('push_notifications_apns_certificate', 'apns-production' . PUSH_NOTIFICATIONS_APNS_CERTIFICATE_RANDOM . '.pem'));
 // Size limit for individual payload, in bytes.
-define('PUSH_NOTIFICATIONS_APNS_PAYLOAD_SIZE_LIMIT', 255);
+define('PUSH_NOTIFICATIONS_APNS_PAYLOAD_SIZE_LIMIT', 2048);
 // Payload sound
 define('PUSH_NOTIFICATIONS_APNS_NOTIFICATION_SOUND', variable_get('push_notifications_apns_notification_sound', 'default'));
 // Boolean value to indicate wether Apple's feedback service should be called
@@ -595,7 +595,7 @@ function push_notifications_apns_send_message($tokens, $payload) {
     $stream_counter++;
 
     $result['count_attempted']++;
-    $apns_message = chr(0) . chr(0) . chr(32) . pack('H*', $token) . chr(0) . chr(strlen($payload_apns)) . $payload_apns;
+    $apns_message = chr(0) . chr(0) . chr(32) . pack('H*', $token) . pack('n', strlen($payload_apns)) . $payload_apns;
     // Write the payload to the currently active streaming connection.
     $success = fwrite($apns, $apns_message);
     if ($success) {

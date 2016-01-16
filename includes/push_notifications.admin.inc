@@ -369,11 +369,13 @@ function push_notifications_mass_push_form($form_state) {
   $form['message']['alert'] = array(
     '#type' => 'textfield',
     '#title' => t('Push Message'),
-    '#description' => t('Compose the message to send out (256 characters max.)'),
+    '#description' => t('Compose the message to send out (!limit characters max.)', array(
+      '!limit' => PUSH_NOTIFICATIONS_APNS_PAYLOAD_SIZE_LIMIT,
+    )),
     '#default_value' => (isset($form_state['values']['message']['alert'])) ? $form_state['values']['message']['alert'] : '',
     '#required' => TRUE,
     '#size' => 128,
-    '#maxlength' => 256,
+    '#maxlength' => PUSH_NOTIFICATIONS_APNS_PAYLOAD_SIZE_LIMIT,
     '#weight' => 10,
   );
 
@@ -439,7 +441,9 @@ function push_notifications_mass_push_form_validate($form, &$form_state) {
 
   // Validate that the message size is ok.
   if (!push_notifications_check_payload_size($form_state['values']['payload'])) {
-    form_set_error('message', t('Your message exceeds the allowed size of 256 bytes. Please shorten your message.'));
+    form_set_error('message', t('Your message exceeds the allowed size of !max_size bytes. Please shorten your message.', array(
+      '!max_size' => PUSH_NOTIFICATIONS_APNS_PAYLOAD_SIZE_LIMIT,
+    )));
   }
 }
 

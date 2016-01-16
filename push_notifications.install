@@ -63,7 +63,7 @@ function push_notifications_schema() {
       'payload' => array(
         'description' => 'Message',
         'type' => 'varchar',
-        'length' => '256',
+        'length' => '2048',
         'not null' => TRUE,
       ),
       'timestamp' => array(
@@ -217,4 +217,21 @@ function push_notifications_update_7004() {
 
   // Add token_uid index.
   db_add_index($table, 'token_uid', array('token', 'uid'));
+}
+
+/**
+ * Implements hook_update_n.
+ *
+ * Increase size of payload field.
+ */
+function push_notifications_update_7005() {
+  $table = 'push_notifications_queue';
+  $field = 'payload';
+  $field_new = array(
+    'description' => 'Message',
+    'type' => 'varchar',
+    'length' => '2048',
+    'not null' => TRUE,
+  );
+  db_change_field($table, $field, $field, $field_new);
 }
