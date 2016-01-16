@@ -40,3 +40,14 @@ function hook_push_notifications_store_token(&$token, $type_id, $uid) {
 function hook_push_notifications_purge_token($token, $type_id) {
 
 }
+
+/**
+ * Allows a module to use the newly created record
+ * after a token was stored in the database.
+ *
+ * @param object $token_record Database record containing the token.
+ *
+ */
+function hook_push_notifications_post_store_token($token_record) {
+
+}

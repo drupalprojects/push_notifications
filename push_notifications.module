@@ -374,6 +374,12 @@ function push_notifications_store_token($token = '', $type_id = '', $uid = '', $
   $record->timestamp = time();
   $result = drupal_write_record($table, $record);
 
+  // Allow modules to react to the newly created record after creation.
+  foreach(module_implements('push_notifications_post_store_token') as $module) {
+    $function = $module . '_push_notifications_post_store_token';
+    $function($record);
+  }
+
   // Invoke rules.
   if (module_exists('rules')) {
     rules_invoke_event_by_args('push_notifications_after_token_insert', array(
