@@ -504,16 +504,23 @@ function push_notifications_send_message($recipients, $message) {
  * Send a simple message alert to all tokens in the database.
  *
  * @param string $message Message to be included in payload.
+ * @param string $target_group Defines the target group for this message.
+ *   Valid options are:
+ *   - any
+ *   - authenticated
+ *   - anonymous
  * @return mixed Flag indicating if message delivery was successful.
  */
-function push_notifications_send_message_bulk($message = '') {
+function push_notifications_send_message_bulk($message = '', $target_group = '') {
   if (empty($message)) {
     watchdog('push_notifications', t('Message cannot be empty'));
     return false;
   }
 
   // Get all tokens in the system.
-  $tokens = push_notifications_get_tokens(array(), true);
+  $tokens = push_notifications_get_tokens(array(
+    'account_type' => $target_group,
+  ), true);
 
   // Let modules modify the message before it is sent.
   foreach(module_implements('push_notifications_send_message') as $module) {

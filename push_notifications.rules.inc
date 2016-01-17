@@ -19,9 +19,9 @@ function push_notifications_rules_action_info() {
         'type' => 'list<integer>',
         'label' => t('Array of uids'),
       ),
-      'payload' => array(
+      'message' => array(
         'type' => 'text',
-        'label' => t('Notification payload'),
+        'label' => t('Notification message'),
       ),
     ),
   );
@@ -30,9 +30,18 @@ function push_notifications_rules_action_info() {
     'label' => t('Send a push notification to all registered tokens'),
     'group' => t('Push notification'),
     'parameter' => array(
-      'payload' => array(
+      'message' => array(
         'type' => 'text',
-        'label' => t('Notification payload'),
+        'label' => t('Notification message'),
+      ),
+      'target_group' => array(
+        'type' => 'text',
+        'label' => t('Target Group'),
+        'description' => t('Select which user group this message should be delivered to.'),
+        'options list' => 'push_notifications_target_group_options',
+        'restriction' => 'input',
+        'default value' => 'any',
+        'optional' => TRUE,
       ),
     ),
   );
@@ -40,6 +49,18 @@ function push_notifications_rules_action_info() {
   return $items;
 }
 
+/**
+ * Defines target groups for bulk message alert.
+ *
+ * @return array
+ */
+function push_notifications_target_group_options() {
+  return array(
+    'any' => t('All tokens'),
+    'authenticated' => t('Tokens belonging to authenticated users only'),
+    'anonymous' => t('Tokens belonging to anonymous users only'),
+  );
+}
 
 
 /**
