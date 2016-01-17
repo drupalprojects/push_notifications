@@ -455,8 +455,6 @@ function push_notifications_check_payload_size($payload = '') {
   return $size_valid;
 }
 
-
-
 /**
  * Send out push notifications, switch automatically between delivery method.
  *
@@ -464,6 +462,8 @@ function push_notifications_check_payload_size($payload = '') {
  *   Array of user ids.
  * @param $message
  *   Payload to send.
+ *
+ * @return mixed Flag to indicate if delivery was successful.
  */
 function push_notifications_send_message($recipients, $message) {
   if (!is_array($recipients) || !is_string($message)) {
@@ -476,7 +476,7 @@ function push_notifications_send_message($recipients, $message) {
     $function($message);
   }
 
-  // Shorten the message to 255 characters / 8 bit.
+  // Shorten the message characters / 8 bit.
   $message = truncate_utf8($message, PUSH_NOTIFICATIONS_APNS_PAYLOAD_SIZE_LIMIT, TRUE, TRUE);
 
   // Convert the payload into the correct format for delivery.
@@ -496,18 +496,31 @@ function push_notifications_send_message($recipients, $message) {
     return FALSE;
   }
 
+  // Send a simple alert message.
+  push_notifications_send_alert($tokens, $payload);
+}
+
+/**
+ * Handle delivery of simple alert message.
+ *
+ * @param array $tokens Multi-dimensional array of tokens. Each token
+ *   needs to be represented as an array
+ * @param array $payload Payload.
+ *
+ */
+function push_notifications_send_alert($tokens = array(), $payload = array()) {
   // Group tokens into types.
   $tokens_ios = array();
   $tokens_android = array();
   foreach ($tokens as $token) {
     switch ($token['type']) {
       case PUSH_NOTIFICATIONS_TYPE_ID_IOS:
-      $tokens_ios[] = $token['token'];
-      break;
+        $tokens_ios[] = $token['token'];
+        break;
 
       case PUSH_NOTIFICATIONS_TYPE_ID_ANDROID:
-      $tokens_android[] = $token['token'];
-      break;
+        $tokens_android[] = $token['token'];
+        break;
     }
   }
 
@@ -515,19 +528,20 @@ function push_notifications_send_message($recipients, $message) {
   if (!empty($tokens_ios)) {
     // Convert the payload into the correct format for APNS.
     $payload_apns = array('aps' => $payload);
-    $result = push_notifications_apns_send_message($tokens_ios, $payload_apns);
+    push_notifications_apns_send_message($tokens_ios, $payload_apns);
   }
+
   // Send payload to Android recipients if configured correctly.
   if (!empty($tokens_android) && ((PUSH_NOTIFICATIONS_C2DM_USERNAME && PUSH_NOTIFICATIONS_C2DM_PASSWORD) || PUSH_NOTIFICATIONS_GCM_API_KEY)) {
     // Determine which method to use for Google push notifications.
     switch (PUSH_NOTIFICATIONS_GOOGLE_TYPE) {
       case PUSH_NOTIFICATIONS_GOOGLE_TYPE_C2DM:
-      $result = push_notifications_c2dm_send_message($tokens_android, $payload);
-      break;
+        push_notifications_c2dm_send_message($tokens_android, $payload);
+        break;
 
       case PUSH_NOTIFICATIONS_GOOGLE_TYPE_GCM:
-      $result = push_notifications_gcm_send_message($tokens_android, $payload);
-      break;
+        push_notifications_gcm_send_message($tokens_android, $payload);
+        break;
     }
   }
 }
