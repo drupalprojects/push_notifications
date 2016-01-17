@@ -456,7 +456,7 @@ function push_notifications_check_payload_size($payload = '') {
 }
 
 /**
- * Send out push notifications, switch automatically between delivery method.
+ * Send a simple message alert to an array of recipients.
  *
  * @param $recipients
  *   Array of user ids.
@@ -473,7 +473,7 @@ function push_notifications_send_message($recipients, $message) {
   // Let modules modify the message before it is sent.
   foreach(module_implements('push_notifications_send_message') as $module) {
     $function = $module . '_push_notifications_send_message';
-    $function($message);
+    $function($message, $type = 'simple');
   }
 
   // Shorten the message characters / 8 bit.
@@ -497,6 +497,42 @@ function push_notifications_send_message($recipients, $message) {
   }
 
   // Send a simple alert message.
+  push_notifications_send_alert($tokens, $payload);
+}
+
+/**
+ * Send a simple message alert to all tokens in the database.
+ *
+ * @param string $message Message to be included in payload.
+ * @return mixed Flag indicating if message delivery was successful.
+ */
+function push_notifications_send_message_bulk($message = '') {
+  if (empty($message)) {
+    watchdog('push_notifications', t('Message cannot be empty'));
+    return false;
+  }
+
+  // Get all tokens in the system.
+  $tokens = push_notifications_get_tokens(array(), true);
+
+  // Let modules modify the message before it is sent.
+  foreach(module_implements('push_notifications_send_message') as $module) {
+    $function = $module . '_push_notifications_send_message';
+    $function($message, $type = 'bulk');
+  }
+
+  // Shorten the message characters / 8 bit.
+  $message = truncate_utf8($message, PUSH_NOTIFICATIONS_APNS_PAYLOAD_SIZE_LIMIT, TRUE, TRUE);
+
+  // Convert the payload into the correct format for delivery.
+  $payload = array('alert' => $message);
+
+  // Stop right here if none of these users have any tokens.
+  if (empty($tokens)) {
+    return FALSE;
+  }
+
+  // Send out alert.
   push_notifications_send_alert($tokens, $payload);
 }
 

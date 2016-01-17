@@ -9,22 +9,34 @@
  * Implements hook_rules_action_info().
  */
 function push_notifications_rules_action_info() {
-  $items = array(
-    'push_notifications_send_message' => array(
-      'label' => t('Send a push notification'),
-      'group' => t('Push notification'),
-      'parameter' => array(
-        'uids' => array(
-          'type' => 'list<integer>',
-          'label' => t('Array of uids'),
-        ),
-        'payload' => array(
-          'type' => 'text',
-          'label' => t('Notification payload'),
-        ),
+  $items = array();
+
+  $items['push_notifications_send_message'] = array(
+    'label' => t('Send a push notification to an array of user uids'),
+    'group' => t('Push notification'),
+    'parameter' => array(
+      'uids' => array(
+        'type' => 'list<integer>',
+        'label' => t('Array of uids'),
+      ),
+      'payload' => array(
+        'type' => 'text',
+        'label' => t('Notification payload'),
       ),
     ),
   );
+
+  $items['push_notifications_send_message_bulk'] = array(
+    'label' => t('Send a push notification to all registered tokens'),
+    'group' => t('Push notification'),
+    'parameter' => array(
+      'payload' => array(
+        'type' => 'text',
+        'label' => t('Notification payload'),
+      ),
+    ),
+  );
+
   return $items;
 }
 
