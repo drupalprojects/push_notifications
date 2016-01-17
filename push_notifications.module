@@ -503,8 +503,7 @@ function push_notifications_send_message($recipients, $message) {
 /**
  * Handle delivery of simple alert message.
  *
- * @param array $tokens Multi-dimensional array of tokens. Each token
- *   needs to be represented as an array
+ * @param array $tokens Array of token record objects.
  * @param array $payload Payload.
  *
  */
@@ -513,13 +512,13 @@ function push_notifications_send_alert($tokens = array(), $payload = array()) {
   $tokens_ios = array();
   $tokens_android = array();
   foreach ($tokens as $token) {
-    switch ($token['type']) {
+    switch ($token->type) {
       case PUSH_NOTIFICATIONS_TYPE_ID_IOS:
-        $tokens_ios[] = $token['token'];
+        $tokens_ios[] = $token->token;
         break;
 
       case PUSH_NOTIFICATIONS_TYPE_ID_ANDROID:
-        $tokens_android[] = $token['token'];
+        $tokens_android[] = $token->token;
         break;
     }
   }
@@ -1000,31 +999,24 @@ function push_notifications_get_tokens($filters = array(), $raw = FALSE) {
 /**
  * Determine all tokens for a specfic user.
  *
- * @param @uid
- *   User ID.
+ * @param int $uid User Id.
+ * @return array Array of token database records.
  *
- * @return
- *   Nested array of tokens, with user id, push notification type
- *   and token.
  */
-function push_notification_get_user_tokens($uid = '') {
-  if ($uid == '' || !is_numeric($uid)) {
+function push_notification_get_user_tokens($uid) {
+  if (!is_numeric($uid)) {
     return FALSE;
   }
 
   // Select all tokens for this user.
   $query = db_select('push_notifications_tokens', 'pnt');
-  $query->fields('pnt', array('token', 'uid', 'type'));
+  $query->fields('pnt');
   $query->condition('pnt.uid', $uid);
   $result = $query->execute();
 
   $tokens = array();
   foreach ($result as $record) {
-    $tokens[$record->token] = array(
-      'token' => $record->token,
-      'uid' => $record->uid,
-      'type' => $record->type,
-    );
+    $tokens[$record->token] = $record;
   }
 
   return $tokens;
