@@ -460,7 +460,10 @@ function push_notifications_mass_push_form_submit($form, &$form_state) {
   // Send message to all iOS recipients.
   if (!empty($recipients['ios'])) {
     // Get all iOS recipients.
-    $tokens_ios = push_notifications_get_tokens(PUSH_NOTIFICATIONS_TYPE_ID_IOS, $language);
+    $tokens_ios = push_notifications_get_tokens(array(
+      'type_id' => PUSH_NOTIFICATIONS_TYPE_ID_IOS,
+      'language' => $language,
+    ));
     if (!empty($tokens_ios)) {
       // Convert the payload into the correct format for APNS.
       $payload_apns = array('aps' => $payload);
@@ -476,7 +479,10 @@ function push_notifications_mass_push_form_submit($form, &$form_state) {
   // Send message to all Android recipients.
   if (!empty($recipients['android'])) {
     // Get all Android recipients.
-    $tokens_android = push_notifications_get_tokens(PUSH_NOTIFICATIONS_TYPE_ID_ANDROID, $language);
+    $tokens_android = push_notifications_get_tokens(array(
+      'type_id' => PUSH_NOTIFICATIONS_TYPE_ID_ANDROID,
+      'language' => $language,
+    ));
     if (!empty($tokens_android)) {
       // Determine which method to use for Google push notifications.
       switch (PUSH_NOTIFICATIONS_GOOGLE_TYPE) {

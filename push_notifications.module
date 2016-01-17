@@ -921,31 +921,50 @@ function push_notifications_gcm_send_message($tokens, $payload) {
 /**
  * Determine all recipients from a specific device type.
  *
- * @param $type_id
- *   Device Type ID.
- * @param $language
- *   Language code, optional.
+ * @param array $filters Filter option for query. Allows filtering by:
+ *   - Language (key = language)
+ *   - Device type (key = type_id)
+ *   - Account type (key = account_type)
  * @param $raw
  *   Boolean, set true to retrieve the raw query results.
  *
- * @return
- *   Array of results, null if no entries.
+ * @return mixed Array of results, null if no entries.
  */
-function push_notifications_get_tokens($type_id = '', $language = FALSE, $raw = FALSE) {
-  // Make sure this type_id is supported.
-  $valid_type_ids = array(PUSH_NOTIFICATIONS_TYPE_ID_IOS, PUSH_NOTIFICATIONS_TYPE_ID_ANDROID);
-  if (!in_array($type_id, $valid_type_ids)) {
+function push_notifications_get_tokens($filters = array(), $raw = FALSE) {
+  // Validate format of filters argument.
+  if (!is_array($filters)) {
     return FALSE;
   }
 
   // Select all tokens for this type id.
   $query = db_select('push_notifications_tokens', 'pnt');
-  $query->fields('pnt', array('token'));
-  $query->condition('pnt.type', $type_id);
-  // If language code is passed, limit the results by language.
-  if ($language) {
-    $query->condition('pnt.language', $language);
+  $query->fields('pnt');
+
+  // Filter by device type, if required.
+  if (array_key_exists('type_id', $filters) ) {
+    $query->condition('pnt.type', $filters['type_id']);
   }
+
+  // Filter by language, if required.
+  if (array_key_exists('language', $filters) && is_string($filters['language'])) {
+    $query->condition('pnt.language', $filters['language']);
+  }
+
+  // Filter by anonymous vs. authenticated users.
+  if (
+    array_key_exists('account_type', $filters) &&
+    in_array($filters['account_type'], array('anonymous', 'authenticated'))
+  ) {
+    switch ($filters['account_type']) {
+      case 'anonymous':
+        $query->condition('pnt.uid', 0);
+        break;
+      case 'authenticated':
+        $query->condition('pnt.uid', 0, '!=');
+        break;
+    }
+  }
+
   $result = $query->execute();
 
   // Return raw result, if needed.
