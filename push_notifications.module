@@ -416,7 +416,9 @@ function push_notifications_open_apns() {
   if (strlen($passphrase)) {
     stream_context_set_option($stream_context, 'ssl', 'passphrase', $passphrase);
   }
-
+  if (variable_get('push_notifications_set_entrust_certificate', FALSE)) {
+    stream_context_set_option($stream_context, 'ssl', 'CAfile', drupal_get_path('module', 'push_notifications') . '/certificates/entrust_2048_ca.cer');
+  }
 
   // Open an Internet socket connection.
   $apns = stream_socket_client('ssl://' . PUSH_NOTIFICATIONS_APNS_HOST . ':' . PUSH_NOTIFICATIONS_APNS_PORT, $error, $error_string, 2, STREAM_CLIENT_CONNECT, $stream_context);
@@ -1174,6 +1176,9 @@ function push_notifications_apns_feedback_service() {
   $passphrase = variable_get('push_notifications_apns_passphrase', '');
   if (strlen($passphrase)) {
     stream_context_set_option($stream_context, 'ssl', 'passphrase', $passphrase);
+  }
+  if (variable_get('push_notifications_set_entrust_certificate', FALSE)) {
+    stream_context_set_option($stream_context, 'ssl', 'CAfile', drupal_get_path('module', 'push_notifications') . '/certificates/entrust_2048_ca.cer');
   }
 
   $apns = stream_socket_client('ssl://' . PUSH_NOTIFICATIONS_APNS_FEEDBACK_HOST . ':' . PUSH_NOTIFICATIONS_APNS_FEEDBACK_PORT, $error, $error_string, 2, STREAM_CLIENT_CONNECT, $stream_context);

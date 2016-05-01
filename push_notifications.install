@@ -32,6 +32,7 @@ function push_notifications_uninstall() {
   variable_del('push_notifications_apns_environment');
   variable_del('push_notifications_apns_passphrase');
   variable_del('push_notifications_apns_certificate_folder');
+  variable_del('push_notifications_set_entrust_certificate');
   variable_del('push_notifications_google_type');
   variable_del('push_notifications_c2dm_username');
   variable_del('push_notifications_c2dm_password');

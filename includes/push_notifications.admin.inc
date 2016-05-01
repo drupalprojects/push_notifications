@@ -192,6 +192,17 @@ function push_notifications_admin_form($form_state) {
     '#default_value' => variable_get('push_notifications_apns_certificate_folder', ''),
   );
 
+  $form['configuration_apns']['push_notifications_set_entrust_certificate'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Set Entrust root certificate'),
+    '#description' => t('If APNS does not work and you are getting errors like %php_error_string your server might be missing the Entrust root certificate. Enable this to explicitely add it when establishing a connection to APNS. See more in this !link_kb and the !link_entrust.', array(
+      '%php_error_string' => 'Warning: stream_socket_client() [...]',
+      '!link_entrust' => l('Entrust Root Certificate Downloads', 'https://www.entrust.com/get-support/ssl-certificate-support/root-certificate-downloads/', array('attributes' => array('target' => '_blank'))),
+      '!link_kb' => l('Knowledgebase Article', 'http://stackoverflow.com/questions/4817520/why-ssl-of-entrust-ssl-certificate-is-required-for-apns', array('attributes' => array('target' => '_blank'))),
+    )),
+    '#default_value' => variable_get('push_notifications_set_entrust_certificate', 0),
+  );
+
   $form['configuration_c2dm'] = array(
     '#type' => 'fieldset',
     '#title' => t('Google Push Notifications'),
@@ -333,6 +344,8 @@ function push_notifications_admin_form_submit($form, &$form_state) {
 
   // Set the APNS stream limit.
   variable_set('push_notifications_apns_stream_context_limit', $form_state['values']['stream_context_limit']);
+
+  variable_set('push_notifications_set_entrust_certificate', $form_state['values']['push_notifications_set_entrust_certificate']);
 
   $replacements = array(
     '@environment' => ($apns_environment) ? "Production" : "Development",
