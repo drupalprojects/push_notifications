@@ -458,11 +458,8 @@ function push_notifications_check_payload_size($payload = '') {
 /**
  * Send a simple message alert to an array of recipients.
  *
- * @param $recipients
- *   Array of user ids.
- * @param $message
- *   Payload to send.
- *
+ * @param array $recipients Array of user ids.
+ * @param string $message Message to be included in payload.
  * @return mixed Flag to indicate if delivery was successful.
  */
 function push_notifications_send_message($recipients, $message) {
@@ -498,6 +495,22 @@ function push_notifications_send_message($recipients, $message) {
 
   // Send a simple alert message.
   push_notifications_send_alert($tokens, $payload);
+}
+
+/**
+ * Send a simple message alert to a single account.
+ *
+ * @param object $account User account.
+ * @param string $message Message to be included in payload.
+ * @return mixed
+ */
+function push_notifications_send_message_account($account, $message) {
+  if (!is_object($account) || !is_numeric($account->uid)) {
+    watchdog('push_notifications', t('Not a valid account object.'));
+    return false;
+  }
+
+  push_notifications_send_message(array($account->uid), $message);
 }
 
 /**

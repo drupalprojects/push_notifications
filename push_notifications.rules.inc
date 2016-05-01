@@ -11,13 +11,14 @@
 function push_notifications_rules_action_info() {
   $items = array();
 
-  $items['push_notifications_send_message'] = array(
-    'label' => t('Send a push notification to an array of user uids'),
+  $items['push_notifications_send_message_account'] = array(
+    'label' => t('Send a push notification to a user account'),
     'group' => t('Push notification'),
     'parameter' => array(
-      'uids' => array(
-        'type' => 'list<integer>',
-        'label' => t('Array of uids'),
+      'account' => array(
+        'type' => 'user',
+        'label' => t('User Account'),
+        'description' => t('Specify the recipient account for this message.'),
       ),
       'message' => array(
         'type' => 'text',
