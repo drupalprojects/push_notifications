@@ -1,0 +1,6 @@
+push_notifications.push_notifications_config_form:
+  title: 'Push Notifications'
+  route_name: push_notifications.push_notifications_config_form
+  description: 'Configuration options for push notifications.'
+  parent: system.admin_config_services
+  weight: 99
