@@ -1,7 +1,0 @@
-name = Push Notifications
-description = "Push notification functionality for iPhone and Android"
-package = other
-core = 7.x
-files[] = push_notifications.install
-files[] = push_notifications.module
-configure = admin/config/services/push_notifications
