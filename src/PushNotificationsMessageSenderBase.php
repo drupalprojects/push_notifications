@@ -39,6 +39,12 @@ abstract class PushNotificationsMessageSenderBase{
   protected $networks;
 
   /**
+   * @var array $results
+   *   Result data.
+   */
+  protected $results;
+
+  /**
    * Constructor.
    */
   public function __construct() {}
@@ -65,6 +71,13 @@ abstract class PushNotificationsMessageSenderBase{
    * Generates the list of tokens required by each message sender class.
    */
   abstract public function generateTokens();
+
+  /**
+   * Getter function for results.
+   */
+  public function getResults() {
+    return $this->results;
+  }
 
   /**
    * Setter function for message.
@@ -111,6 +124,7 @@ abstract class PushNotificationsMessageSenderBase{
     $this->dispatcher->setMessage($this->message);
     $this->dispatcher->setTokens($this->tokens);
     $this->dispatcher->dispatch();
+    $this->results = $this->dispatcher->getResults();
   }
 
 }

@@ -9,54 +9,69 @@ namespace Drupal\push_notifications;
 
 /**
  * Handles dispatching of messages.
+ * This class will send out the message to all networks
+ * in the list of tokens.
  */
 class PushNotificationsDispatcher {
 
   /**
-   * Array of tokens grouped by type.
+   * @var array $tokens
+   *   Array of tokens grouped by type.
    */
   protected $tokens = array();
 
   /**
-   * Message.
+   * @var string $messages
+   *   Message.
    */
   protected $message;
+
+  /**
+   * @var array $networks.
+   *   Available networks.
+   */
+  protected $networks;
+
+  /**
+   * @var array $results
+   *   Results for each network.
+   */
+  protected $results;
 
   /**
    * Constructor.
    */
   public function __construct() {
+    // Set available networks.
+    $this->networks = push_notifications_get_networks();
   }
 
   /**
    * Dispatch message.
    */
   public function dispatch() {
-    // Send payload to iOS recipients.
-    if (!empty($this->tokens[PUSH_NOTIFICATIONS_TYPE_ID_IOS])) {
+    foreach ($this->networks as $network) {
+      // Only try this network if any tokens are available.
+      if (empty($this->tokens[$network])) {
+        $this->results[$network] = array(
+          'type_id' => $network,
+          'count_attempted' => 0,
+          'count_success' => 0,
+          'success' => NULL,
+        );
+        continue;
+      }
+
+      // Broadcast message.
       try {
-        $apnsBroadcaster = \Drupal::service('push_notifications.broadcaster_apns');
-        $apnsBroadcaster->setTokens($this->tokens[PUSH_NOTIFICATIONS_TYPE_ID_IOS]);
-        $apnsBroadcaster->setMessage($this->message);
-        $apnsBroadcaster->sendBroadcast();
-        $results = $apnsBroadcaster->getResults();
-        // TODO: Log results.
+        $service_name = 'push_notifications.broadcaster_' . $network;
+        $broadcaster = \Drupal::service($service_name);
+        $broadcaster->setTokens($this->tokens[$network]);
+        $broadcaster->setMessage($this->message);
+        $broadcaster->sendBroadcast();
+        $this->results[$network] = $broadcaster->getResults();
       } catch (\Exception $e) {
         //drupal_set_message(t('Your message could not be sent. Please check the log for details.'), 'error');
-        \Drupal::logger('push_notifications')->error($e->getMessage());
-      }
-    }
-
-    // Send payload to Android recipients.
-    if (!empty($this->tokens[PUSH_NOTIFICATIONS_TYPE_ID_ANDROID])) {
-      try {
-        $broadcaster_gcm = \Drupal::service('push_notifications.broadcaster_gcm');
-        $broadcaster_gcm->setTokens($this->tokens[PUSH_NOTIFICATIONS_TYPE_ID_ANDROID]);
-        $broadcaster_gcm->setMessage($this->message);
-        $results = $broadcaster_gcm->getResults();
-        // TODO: Log result message.
-      } catch (\Exception $e) {
-        drupal_set_message(t('Your message could not be sent. Please check the log for details.'), 'error');
         \Drupal::logger('push_notifications')->error($e->getMessage());
       }
     }
@@ -78,6 +93,13 @@ class PushNotificationsDispatcher {
    */
   public function setMessage($message) {
     $this->message = $message;
+  }
+
+  /**
+   * Getter function for results.
+   */
+  public function getResults() {
+    return $this->results;
   }
 
   /**

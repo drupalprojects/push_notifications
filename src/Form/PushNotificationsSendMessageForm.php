@@ -78,15 +78,12 @@ class PushNotificationsSendMessageForm extends FormBase {
       'networks' => $networks,
     ));
 
-    // Only proceed if any tokens were found.
     if (empty($tokens)) {
+      // Onlyproceed if tokens were found.
       $form_state->setErrorByName('networks', $this->t('No tokens found for your selected networks.'));
     } else {
-      // Send push notification.
-      $messageSender = \Drupal::service('push_notifications.message_sender_list');
-      $messageSender->setTokens($tokens);
-      $messageSender->setMessage($form_state->getValue('message'));
-      $messageSender->dispatch();
+      // Pass the tokens to the submit handler.
+      $form_state->setTemporaryValue('tokens', $tokens);
     }
 
     parent::validateForm($form, $form_state);
@@ -96,7 +93,24 @@ class PushNotificationsSendMessageForm extends FormBase {
    * {@inheritdoc}
    */
   public function submitForm(array &$form, FormStateInterface $form_state) {
+    $messageSender = \Drupal::service('push_notifications.message_sender_list');
+    $messageSender->setTokens($form_state->getTemporaryValue('tokens'));
+    $messageSender->setMessage($form_state->getValue('message'));
+    $messageSender->dispatch();
+    $results = $messageSender->getResults();
 
+    // Display result for each network.
+    foreach ($results as $network => $result) {
+      if (empty($result['count_attempted'])) {
+        // Only display results for networks with tokens.
+        continue;
+      }
+      drupal_set_message($this->t('@network: Attempted to send @count_attempted tokens, sent @count_success.', array(
+        '@network' => strtoupper($network),
+        '@count_attempted' => $result['count_attempted'],
+        '@count_success' => $result['count_success'],
+      )));
+    }
   }
 
 }

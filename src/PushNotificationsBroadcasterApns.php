@@ -81,8 +81,6 @@ class PushNotificationsBroadcasterApns implements PushNotificationsBroadcasterIn
    * Constructor.
    */
   public function __construct() {
-    dpm('Apns Alert Dispatcher');
-
     // Load configuration.
     $this->config = \Drupal::config('push_notifications.apns');
 
@@ -253,7 +251,7 @@ class PushNotificationsBroadcasterApns implements PushNotificationsBroadcasterIn
    */
   public function getResults() {
     return array(
-      'type_id' => PUSH_NOTIFICATIONS_TYPE_ID_IOS,
+      'network' => PUSH_NOTIFICATIONS_TYPE_ID_IOS,
       'payload' => $this->payload,
       'count_attempted' => $this->countAttempted,
       'count_success' => $this->countSuccess,

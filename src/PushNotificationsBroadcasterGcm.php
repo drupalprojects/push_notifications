@@ -63,7 +63,6 @@ class PushNotificationsBroadcasterGcm implements PushNotificationsBroadcasterInt
    * Constructor.
    */
   public function __construct() {
-    dpm('Android Alert Dispatcher');
   }
 
   /**
@@ -82,6 +81,11 @@ class PushNotificationsBroadcasterGcm implements PushNotificationsBroadcasterInt
    */
   public function setMessage($message) {
     $this->message = $message;
+
+    // Set the payload.
+    $this->payload = array(
+      'alert' => $message,
+    );
   }
 
   /**
@@ -118,7 +122,7 @@ class PushNotificationsBroadcasterGcm implements PushNotificationsBroadcasterInt
    */
   public function getResults() {
     return array(
-      'type_id' => PUSH_NOTIFICATIONS_TYPE_ID_ANDROID,
+      'network' => PUSH_NOTIFICATIONS_TYPE_ID_ANDROID,
       'payload' => $this->payload,
       'count_attempted' => $this->countAttempted,
       'count_success' => $this->countSuccess,
@@ -146,10 +150,10 @@ class PushNotificationsBroadcasterGcm implements PushNotificationsBroadcasterInt
     // Fill the default values required for each payload.
     $data['registration_ids'] = $tokens;
     $data['collapse_key'] = (string) time();
-    $data['data']['message'] = $this->paylod['alert'];
+    $data['data']['message'] = $this->message;
 
     $curl = curl_init();
-    curl_setopt($curl, CURLOPT_URL, PUSH_NOTIFICATIONS_GCM_SERVER_POST_URL);
+    curl_setopt($curl, CURLOPT_URL, self::PUSH_NOTIFICATIONS_GCM_SERVER_POST_URL);
     curl_setopt($curl, CURLOPT_HTTPHEADER, $this->getHeaders());
     curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, FALSE);
     curl_setopt($curl, CURLOPT_POST, TRUE);
