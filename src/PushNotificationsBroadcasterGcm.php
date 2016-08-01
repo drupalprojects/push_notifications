@@ -33,19 +33,19 @@ class PushNotificationsBroadcasterGcm implements PushNotificationsBroadcasterInt
    * @var int $countAttempted
    *   Count of attempted tokens.
    */
-  protected $countAttempted;
+  protected $countAttempted = 0;
 
   /**
    * @var int $countSuccess
    *   Count of successful tokens.
    */
-  protected $countSuccess;
+  protected $countSuccess = 0;
 
   /**
    * @var bool $success
    *   Flag to indicate success of all batches.
    */
-  protected $success;
+  protected $success = FALSE;
 
   /**
    * @var string $statusMessage
@@ -108,9 +108,13 @@ class PushNotificationsBroadcasterGcm implements PushNotificationsBroadcasterInt
     // Send notifications in slices of 1000
     // and process the results.
     for ($i = 0; $i < $this->tokenBundles; $i++) {
-      $bundledTokens = array_slice($this->tokens, $i * 1000, 1000, FALSE);
-      $result = $this->sendTokenBundle($bundledTokens);
-      $this->processResult($result, $bundledTokens);
+      try {
+        $bundledTokens = array_slice($this->tokens, $i * 1000, 1000, FALSE);
+        $result = $this->sendTokenBundle($bundledTokens);
+        $this->processResult($result, $bundledTokens);
+      } catch (\Exception $e) {
+        \Drupal::logger('push_notifications')->error($e->getMessage());
+      }
     }
 
     // Mark success as true.
@@ -182,9 +186,16 @@ class PushNotificationsBroadcasterGcm implements PushNotificationsBroadcasterInt
    *   Result of a bundle process, containing the curl info, reponse, and raw response.
    * @param array $tokens
    *   Tokens bundle that was processed.
+   * @throws \Exception
+   *   Throw Exception when connection with Google play cannot be authenticated.
    */
   private function processResult($result, $tokens) {
-    // If Google returns a reply, but that reply includes an error,
+    // If connection is unauthorized, throw Exception.
+    if ($result['info']['http_code'] != 200) {
+      throw new \Exception('Connection could not be authorized with Google Play. Check your API key.');
+    }
+
+    // If Google returns a 200 reply, but that reply includes an error,
     // log the error message.
     if ($result['info']['http_code'] == 200 && (!empty($result['response']->failure))) {
       \Drupal::logger('push_notifications')->notice("Google's Server returned an error: @response_raw", array(

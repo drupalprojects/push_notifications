@@ -33,19 +33,19 @@ class PushNotificationsBroadcasterApns implements PushNotificationsBroadcasterIn
    * @var int $countAttempted
    *   Count of attempted tokens.
    */
-  protected $countAttempted;
+  protected $countAttempted = 0;
 
   /**
    * @var int $countSuccess
    *   Count of successful tokens.
    */
-  protected $countSuccess;
+  protected $countSuccess = 0;
 
   /**
    * @var bool $success
-   *   Flag to indicate success of all batches.
+   *   Flag to indicate success.
    */
-  protected $success;
+  protected $success = FALSE;
 
   /**
    * @var string $statusMessage
@@ -192,7 +192,6 @@ class PushNotificationsBroadcasterApns implements PushNotificationsBroadcasterIn
    *   Array of tokens and payload necessary to send out a broadcast.
    */
   public function sendBroadcast() {
-    //die(kint($this));
     if (empty($this->tokens) || empty($this->payload)) {
       throw new \Exception('No tokens or payload set.');
     }
