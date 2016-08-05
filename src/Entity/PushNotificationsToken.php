@@ -43,6 +43,13 @@ class PushNotificationsToken extends ContentEntityBase implements PushNotificati
       ->setDescription(t('The UUID of the push notifications token.'))
       ->setReadOnly(TRUE);
 
+    // User ID.
+    $fields['uid'] = BaseFieldDefinition::create('entity_reference')
+      ->setLabel(t('User Name'))
+      ->setDescription(t('The token owner.'))
+      ->setSetting('target_type', 'user')
+      ->setDefaultValue(0);
+
     // Token.
     $fields['token'] = BaseFieldDefinition::create('string')
       ->setLabel(t('Token'))
