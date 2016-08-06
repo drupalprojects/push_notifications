@@ -19,16 +19,33 @@ use Drupal\Core\Entity\EntityTypeInterface;
  *   id = "push_notifications_token",
  *   label = @Translation("Push Notifications Token"),
  *   base_table = "push_notifications_tokens",
+ *   admin_permission = "administer push_notifications_token entity",
  *   handlers = {
  *     "storage_schema" = "Drupal\push_notifications\PushNotificationsTokenStorageSchema",
+ *     "list_builder" = "Drupal\push_notifications\Entity\Controller\PushNotificationsTokenListBuilder",
  *   },
  *   entity_keys = {
  *     "id" = "id",
  *     "uuid" = "uuid",
+ *     "label" = "token",
  *   },
  * )
  */
 class PushNotificationsToken extends ContentEntityBase implements PushNotificationsTokenInterface {
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getOwner() {
+    return $this->get('uid')->entity;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getOwnerId() {
+    return $this->get('uid')->target_id;
+  }
 
   public static function baseFieldDefinitions(EntityTypeInterface $entity_type) {
     // Standard field, used as unique if primary key.

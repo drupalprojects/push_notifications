@@ -18,3 +18,10 @@ push_notifications.send_message_form:
   requirements:
     _permission: 'send push notifications'
   
+push_notifications.push_notifications_token_list.collection:
+  path: '/admin/config/services/push_notifications/device-tokens'
+  defaults:
+    _entity_list: 'push_notifications_token'
+    _title: 'Push Notifications Device Tokens'
+  requirements:
+    _permission: 'send push notifications'
