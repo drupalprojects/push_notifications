@@ -19,7 +19,7 @@ use Drupal\Core\Entity\EntityTypeInterface;
  *   id = "push_notifications_token",
  *   label = @Translation("Push Notifications Token"),
  *   base_table = "push_notifications_tokens",
- *   admin_permission = "administer push_notifications_token entity",
+ *   admin_permission = "administer device tokens",
  *   handlers = {
  *     "storage_schema" = "Drupal\push_notifications\PushNotificationsTokenStorageSchema",
  *     "list_builder" = "Drupal\push_notifications\Entity\Controller\PushNotificationsTokenListBuilder",

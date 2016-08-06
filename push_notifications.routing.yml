@@ -9,7 +9,6 @@ push_notifications.push_notifications_config_form:
   options:
     _admin_route: TRUE
 
-
 push_notifications.send_message_form:
   path: 'admin/config/services/push_notifications/send_message'
   defaults:
@@ -17,11 +16,11 @@ push_notifications.send_message_form:
     _title: 'Send Message'
   requirements:
     _permission: 'send push notifications'
-  
-push_notifications.push_notifications_token_list.collection:
-  path: '/admin/config/services/push_notifications/device-tokens'
+
+push_notifications.token.collection:
+  path: 'admin/config/services/push_notifications/token/list'
   defaults:
     _entity_list: 'push_notifications_token'
     _title: 'Push Notifications Device Tokens'
   requirements:
-    _permission: 'send push notifications'
+    _permission: 'administer device tokens'

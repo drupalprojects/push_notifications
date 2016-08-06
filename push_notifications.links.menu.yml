@@ -7,7 +7,7 @@ push_notifications.push_notifications_config_form:
 
 push_notifications.push_notifications_token_list.collection:
   title: 'Push Notifications Device Tokens'
-  route_name: push_notifications.push_notifications_token_list.collection
-  description: 'A list with all the device tokens stored'
+  route_name: push_notifications.token.collection
+  description: 'List of all stored device tokens'
   parent: system.admin_config_services
   weight: 100

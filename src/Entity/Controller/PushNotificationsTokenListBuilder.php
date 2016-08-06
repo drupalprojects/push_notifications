@@ -2,7 +2,6 @@
 
 /**
  * @file
- *
  * Contains Drupal\push_notifications\Entity\Controller\PushNotificationsTokenListBuilder.
  */
 
@@ -22,13 +21,11 @@ class PushNotificationsTokenListBuilder extends EntityListBuilder {
   /**
    * {@inheritdoc}
    *
-   * We override ::render() so that we can add our own content above the table.
-   * The token analytics part
+   * Add token-specific messaging to table header.
    */
   public function render() {
     $build['description'] = array(
-      // @TODO: modify this markup
-      '#markup' => $this->t('Here is a list of all the tokens in the database.'),
+      '#markup' => $this->t('List of all tokens in the database.'),
     );
 
     $build['table'] = parent::render();
@@ -55,9 +52,7 @@ class PushNotificationsTokenListBuilder extends EntityListBuilder {
    */
   public function buildRow(EntityInterface $entity) {
     /* @var $entity \Drupal\push_notifications\Entity\PushNotificationsToken */
-
     $row['id'] = $entity->id();
-    // @TODO: Maybe here it will be alright if we link the user to his page
     $row['uid'] = $entity->getOwner()->getDisplayName();
     $row['token'] = $entity->token->value;
     $row['network'] = $entity->network->value;

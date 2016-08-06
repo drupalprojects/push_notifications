@@ -10,3 +10,6 @@ send push notifications:
 view device tokens:
   title: 'View device tokens'
   description: 'Allow users to view device tokens.'
+administer device tokens:
+  title: 'Administer device tokens'
+  description: 'Allow users to administer device tokens.'
