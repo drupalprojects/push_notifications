@@ -39,8 +39,8 @@ class PushNotificationsTokenListBuilder extends EntityListBuilder {
    */
   public function buildHeader() {
     $header['id'] = $this->t('ID');
-    $header['uid'] = $this->t('Token owner');
-    $header['token'] = $this->t('Device Token');
+    $header['owner'] = $this->t('Owner');
+    $header['token'] = $this->t('Token');
     $header['network'] = $this->t('Network');
     $header['created'] = $this->t('Created');
 
@@ -53,7 +53,10 @@ class PushNotificationsTokenListBuilder extends EntityListBuilder {
   public function buildRow(EntityInterface $entity) {
     /* @var $entity \Drupal\push_notifications\Entity\PushNotificationsToken */
     $row['id'] = $entity->id();
-    $row['uid'] = $entity->getOwner()->getDisplayName();
+    $row['owner']['data'] = array(
+      '#theme' => 'username',
+      '#account' => $entity->getOwner(),
+    );
     $row['token'] = $entity->token->value;
     $row['network'] = $entity->network->value;
     $row['created'] = \Drupal::service('date.formatter')->format($entity->timestamp->value, 'short');
