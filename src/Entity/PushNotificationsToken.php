@@ -20,6 +20,7 @@ use Drupal\Core\Entity\EntityTypeInterface;
  *   label = @Translation("Push Notifications Token"),
  *   base_table = "push_notifications_tokens",
  *   admin_permission = "administer device tokens",
+ *   fieldable = FALSE,
  *   handlers = {
  *     "storage_schema" = "Drupal\push_notifications\PushNotificationsTokenStorageSchema",
  *     "list_builder" = "Drupal\push_notifications\Entity\Controller\PushNotificationsTokenListBuilder",
@@ -45,6 +46,34 @@ class PushNotificationsToken extends ContentEntityBase implements PushNotificati
    */
   public function getOwnerId() {
     return $this->get('uid')->target_id;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getToken() {
+    return $this->get('token')->value;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getNetwork() {
+    return $this->get('network')->value;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getCreatedTimestamp() {
+    return $this->get('created')->value;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getCreatedTime($type = 'short') {
+    return \Drupal::service('date.formatter')->format($this->getCreatedTimestamp(), $type);
   }
 
   public static function baseFieldDefinitions(EntityTypeInterface $entity_type) {
@@ -86,9 +115,9 @@ class PushNotificationsToken extends ContentEntityBase implements PushNotificati
       ));
 
     // Timestamp.
-    $fields['timestamp'] = BaseFieldDefinition::create('timestamp')
-      ->setLabel(t('Timestamp'))
-      ->setDescription(t('Timestamp the token was added.'))
+    $fields['created'] = BaseFieldDefinition::create('timestamp')
+      ->setLabel(t('Created Timestamp'))
+      ->setDescription(t('Timestamp the token was created.'))
       ->setRequired(TRUE);
 
     return $fields;

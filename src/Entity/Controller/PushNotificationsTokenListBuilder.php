@@ -57,9 +57,9 @@ class PushNotificationsTokenListBuilder extends EntityListBuilder {
       '#theme' => 'username',
       '#account' => $entity->getOwner(),
     );
-    $row['token'] = $entity->token->value;
-    $row['network'] = $entity->network->value;
-    $row['created'] = \Drupal::service('date.formatter')->format($entity->timestamp->value, 'short');
+    $row['token'] = $entity->getToken();
+    $row['network'] = $entity->getNetwork();
+    $row['created'] = $entity->getCreatedTime();
 
     return $row + parent::buildRow($entity);
   }
