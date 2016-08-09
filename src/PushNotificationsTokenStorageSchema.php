@@ -24,7 +24,7 @@ class PushNotificationsTokenStorageSchema extends SqlContentEntityStorageSchema 
 
     if ($table_name == 'push_notifications_tokens') {
       switch ($field_name) {
-        case 'timestamp':
+        case 'created':
         case 'token':
         case 'network':
           $this->addSharedTableFieldIndex($storage_definition, $schema, TRUE);
@@ -34,7 +34,7 @@ class PushNotificationsTokenStorageSchema extends SqlContentEntityStorageSchema 
 
     if ($table_name == 'push_notifications_tokens') {
       switch ($field_name) {
-        case 'timestamp':
+        case 'created':
         case 'token':
         case 'network':
           // Improves the performance of the indexes defined
