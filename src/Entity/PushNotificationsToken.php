@@ -7,10 +7,12 @@
 
 namespace Drupal\push_notifications\Entity;
 
+use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\push_notifications\PushNotificationsTokenInterface;
 use Drupal\Core\Entity\ContentEntityBase;
 use Drupal\Core\Field\BaseFieldDefinition;
 use Drupal\Core\Entity\EntityTypeInterface;
+use Drupal\user\UserInterface;
 
 /**
  * Defines the token entity.
@@ -24,15 +26,35 @@ use Drupal\Core\Entity\EntityTypeInterface;
  *   handlers = {
  *     "storage_schema" = "Drupal\push_notifications\PushNotificationsTokenStorageSchema",
  *     "list_builder" = "Drupal\push_notifications\Entity\Controller\PushNotificationsTokenListBuilder",
+ *     "form" = {
+ *       "delete" = "Drupal\push_notifications\Form\PushNotificationsTokenDeleteForm",
+ *     },
  *   },
  *   entity_keys = {
  *     "id" = "id",
  *     "uuid" = "uuid",
- *     "label" = "token",
+ *   },
+ *   links = {
+ *     "collection" = "/admin/config/services/push_notifications/token/list",
+ *     "canonical" = "/admin/config/services/push_notifications/token/{push_notifications_token}",
+ *     "delete-form" = "/admin/config/services/push_notifications/token/{push_notifications_token}/delete",
  *   },
  * )
  */
 class PushNotificationsToken extends ContentEntityBase implements PushNotificationsTokenInterface {
+
+  /**
+   * {@inheritdoc}
+   *
+   * When a new entity instance is added, set the uid entity reference to
+   * the current user as the creator of the instance.
+   */
+  public static function preCreate(EntityStorageInterface $storage_controller, array &$values) {
+    parent::preCreate($storage_controller, $values);
+    $values += array(
+      'uid' => \Drupal::currentUser()->id(),
+    );
+  }
 
   /**
    * {@inheritdoc}
@@ -72,6 +94,22 @@ class PushNotificationsToken extends ContentEntityBase implements PushNotificati
   /**
    * {@inheritdoc}
    */
+  public function setOwnerId($uid) {
+    $this->set('uid', $uid);
+    return $this;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function setOwner(UserInterface $account) {
+    $this->set('uid', $account->id());
+    return $this;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
   public function getCreatedTime($type = 'short') {
     return \Drupal::service('date.formatter')->format($this->getCreatedTimestamp(), $type);
   }
@@ -94,7 +132,12 @@ class PushNotificationsToken extends ContentEntityBase implements PushNotificati
       ->setLabel(t('User Name'))
       ->setDescription(t('The token owner.'))
       ->setSetting('target_type', 'user')
-      ->setDefaultValue(0);
+      ->setDisplayOptions('view', array(
+        'label' => 'inline',
+        'type' => 'string',
+        'weight' => 0,
+      ))
+      ->setDisplayConfigurable('view', TRUE);
 
     // Token.
     $fields['token'] = BaseFieldDefinition::create('string')
@@ -103,7 +146,13 @@ class PushNotificationsToken extends ContentEntityBase implements PushNotificati
       ->setRequired(TRUE)
       ->setSettings(array(
         'max_length' => 255,
-      ));
+      ))
+      ->setDisplayOptions('view', array(
+        'label' => 'inline',
+        'type' => 'string',
+        'weight' => 1,
+      ))
+      ->setDisplayConfigurable('view', TRUE);
 
     // Network.
     $fields['network'] = BaseFieldDefinition::create('string')
@@ -112,13 +161,26 @@ class PushNotificationsToken extends ContentEntityBase implements PushNotificati
       ->setRequired(TRUE)
       ->setSettings(array(
         'max_length' => 255,
-      ));
+      ))
+      ->setDisplayOptions('view', array(
+        'label' => 'inline',
+        'type' => 'string',
+        'weight' => 2,
+      ))
+      ->setDisplayConfigurable('view', TRUE);
 
     // Timestamp.
     $fields['created'] = BaseFieldDefinition::create('timestamp')
-      ->setLabel(t('Created Timestamp'))
-      ->setDescription(t('Timestamp the token was created.'))
-      ->setRequired(TRUE);
+      ->setLabel(t('Created'))
+      ->setDescription(t('Timestamp the token was added.'))
+      ->setRequired(TRUE)
+      ->setDefaultValue(REQUEST_TIME)
+      ->setDisplayOptions('view', array(
+        'label' => 'inline',
+        'type' => 'string',
+        'weight' => 3,
+      ))
+      ->setDisplayConfigurable('view', TRUE);
 
     return $fields;
   }

@@ -24,3 +24,19 @@ push_notifications.token.collection:
     _title: 'Push Notifications Device Tokens'
   requirements:
     _permission: 'administer device tokens'
+
+entity.push_notifications_token.delete_form:
+  path: '/admin/config/services/push_notifications/token/{push_notifications_token}/delete'
+  defaults:
+    _entity_form: push_notifications_token.delete
+    _title: 'Delete push notifications token'
+  requirements:
+    _permission: 'administer device tokens'
+
+entity.push_notifications_token.canonical:
+  path: '/admin/config/services/push_notifications/token/{push_notifications_token}'
+  defaults:
+    _entity_view: 'push_notifications_token'
+    _title: 'Push notification token'
+  requirements:
+    _permission: 'view device tokens'

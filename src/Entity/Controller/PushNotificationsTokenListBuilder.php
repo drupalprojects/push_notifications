@@ -9,7 +9,9 @@ namespace Drupal\push_notifications\Entity\Controller;
 
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityListBuilder;
-use Drupal\user\Entity\User;
+use Drupal\Core\Link;
+use Drupal\Core\Url;
+use Drupal\Component\Utility\Unicode;
 
 /**
  * Provides a list controller for push_notifications_token entity.
@@ -57,7 +59,11 @@ class PushNotificationsTokenListBuilder extends EntityListBuilder {
       '#theme' => 'username',
       '#account' => $entity->getOwner(),
     );
-    $row['token'] = $entity->getToken();
+    // Link to canonical URL and truncate token after 80 characters.
+    $row['token'] = Link::fromTextAndUrl(
+      Unicode::truncate($entity->getToken(), 80, TRUE, TRUE),
+      Url::fromRoute('entity.push_notifications_token.canonical', array('push_notifications_token' => $entity->id()))
+    );
     $row['network'] = $entity->getNetwork();
     $row['created'] = $entity->getCreatedTime();
 

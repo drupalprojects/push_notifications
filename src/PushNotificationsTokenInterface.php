@@ -15,7 +15,7 @@ use Drupal\user\EntityOwnerInterface;
  *
 * @ingroup push_notifications
 */
-interface PushNotificationsTokenInterface extends ContentEntityInterface {
+interface PushNotificationsTokenInterface extends ContentEntityInterface, EntityOwnerInterface {
 
   /**
    * Returns the entity token.
