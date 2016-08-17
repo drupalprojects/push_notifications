@@ -21,9 +21,9 @@ use Drupal\user\UserInterface;
  *   id = "push_notifications_token",
  *   label = @Translation("Push Notifications Token"),
  *   base_table = "push_notifications_tokens",
- *   admin_permission = "administer device tokens",
  *   fieldable = FALSE,
  *   handlers = {
+ *     "access" = "Drupal\push_notifications\PushNotificationsTokenAccessControlHandler",
  *     "storage_schema" = "Drupal\push_notifications\PushNotificationsTokenStorageSchema",
  *     "list_builder" = "Drupal\push_notifications\Entity\Controller\PushNotificationsTokenListBuilder",
  *     "views_data" = "Drupal\views\EntityViewsData",
