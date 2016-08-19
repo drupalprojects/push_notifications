@@ -153,7 +153,8 @@ class PushNotificationsToken extends ContentEntityBase implements PushNotificati
         'type' => 'string',
         'weight' => 1,
       ))
-      ->setDisplayConfigurable('view', TRUE);
+      ->setDisplayConfigurable('view', TRUE)
+      ->addConstraint('PushNotificationTokenToken');
 
     // Network.
     $fields['network'] = BaseFieldDefinition::create('string')
