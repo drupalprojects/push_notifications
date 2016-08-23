@@ -1,6 +1,6 @@
 
 push_notifications.push_notifications_config_form:
-  path: 'admin/config/services/push_notifications/configuration'
+  path: '/admin/config/services/push_notifications/configuration'
   defaults:
     _form: '\Drupal\push_notifications\Form\PushNotificationsConfigForm'
     _title: 'Push Notifications'
@@ -10,7 +10,7 @@ push_notifications.push_notifications_config_form:
     _admin_route: TRUE
 
 push_notifications.send_message_form:
-  path: 'admin/config/services/push_notifications/send_message'
+  path: '/admin/config/services/push_notifications/send_message'
   defaults:
     _form: '\Drupal\push_notifications\Form\PushNotificationsSendMessageForm'
     _title: 'Send Message'
@@ -18,7 +18,7 @@ push_notifications.send_message_form:
     _permission: 'send push notifications'
 
 push_notifications.token.collection:
-  path: 'admin/config/services/push_notifications/token/list'
+  path: '/admin/config/services/push_notifications/token/list'
   defaults:
     _entity_list: 'push_notifications_token'
     _title: 'Push Notifications Device Tokens'
@@ -26,17 +26,23 @@ push_notifications.token.collection:
     _permission: 'administer device tokens'
 
 entity.push_notifications_token.delete_form:
-  path: '/admin/config/services/push_notifications/token/{push_notifications_token}/delete'
+  path: '/push_notifications/token/{push_notifications_token}/delete'
   defaults:
     _entity_form: push_notifications_token.delete
     _title: 'Delete push notifications token'
+  options:
+    _admin_route: TRUE
   requirements:
     _permission: 'administer device tokens'
+    push_notifications_token: \d+
 
 entity.push_notifications_token.canonical:
-  path: '/admin/config/services/push_notifications/token/{push_notifications_token}'
+  path: '/push_notifications/token/{push_notifications_token}'
   defaults:
     _entity_view: 'push_notifications_token'
     _title: 'Push notification token'
+  options:
+    _admin_route: TRUE
   requirements:
     _permission: 'view device tokens'
+    push_notifications_token: \d+

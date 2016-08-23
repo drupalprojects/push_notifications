@@ -37,8 +37,8 @@ use Drupal\user\UserInterface;
  *   },
  *   links = {
  *     "collection" = "/admin/config/services/push_notifications/token/list",
- *     "canonical" = "/admin/config/services/push_notifications/token/{push_notifications_token}",
- *     "delete-form" = "/admin/config/services/push_notifications/token/{push_notifications_token}/delete",
+ *     "canonical" = "/push_notifications/token/{push_notifications_token}",
+ *     "delete-form" = "/push_notifications/token/{push_notifications_token}/delete",
  *   },
  * )
  */
