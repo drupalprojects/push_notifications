@@ -33,7 +33,7 @@ class PushNotificationsTokenAccessControlHandler extends EntityAccessControlHand
         break;
 
       case 'delete':
-        return AccessResult::allowedIfHasPermissions($account, ['delete device token', 'administer device tokens'], 'OR');
+        return AccessResult::allowedIfHasPermissions($account, ['delete device tokens', 'administer device tokens'], 'OR');
         break;
 
       default:
