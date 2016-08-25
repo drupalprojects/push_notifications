@@ -45,6 +45,7 @@ class PushNotificationsTokenListBuilder extends EntityListBuilder {
     $header['token'] = $this->t('Token');
     $header['network'] = $this->t('Network');
     $header['created'] = $this->t('Created');
+    $header['langcode'] = $this->t('Language Code');
 
     return $header + parent::buildHeader();
   }
@@ -66,6 +67,7 @@ class PushNotificationsTokenListBuilder extends EntityListBuilder {
     );
     $row['network'] = $entity->getNetwork();
     $row['created'] = $entity->getCreatedTime();
+    $row['langcode'] = $entity->getLanguageCode();
 
     return $row + parent::buildRow($entity);
   }

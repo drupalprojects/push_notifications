@@ -22,6 +22,7 @@ use Drupal\user\UserInterface;
  *   label = @Translation("Push Notifications Token"),
  *   base_table = "push_notifications_tokens",
  *   fieldable = FALSE,
+ *   translatable = FALSE,
  *   handlers = {
  *     "access" = "Drupal\push_notifications\PushNotificationsTokenAccessControlHandler",
  *     "storage_schema" = "Drupal\push_notifications\PushNotificationsTokenStorageSchema",
@@ -55,6 +56,13 @@ class PushNotificationsToken extends ContentEntityBase implements PushNotificati
     $values += array(
       'uid' => \Drupal::currentUser()->id(),
     );
+
+    // Set a default language if no language is passed.
+    if (!array_key_exists('langcode', $values)) {
+      $values += array(
+        'langcode' => \Drupal::languageManager()->getCurrentLanguage()->getId(),
+      );
+    }
   }
 
   /**
@@ -83,6 +91,13 @@ class PushNotificationsToken extends ContentEntityBase implements PushNotificati
    */
   public function getNetwork() {
     return $this->get('network')->value;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getLanguageCode() {
+    return $this->get('langcode')->value;
   }
 
   /**
@@ -181,6 +196,24 @@ class PushNotificationsToken extends ContentEntityBase implements PushNotificati
         'label' => 'inline',
         'type' => 'string',
         'weight' => 3,
+      ))
+      ->setDisplayConfigurable('view', TRUE);
+
+    // Language code.
+    // If no language code is provided when entity is created,
+    // the language code is set to the default language of the site.
+    $fields['langcode'] = BaseFieldDefinition::create('string')
+      ->setLabel(t('Language'))
+      ->setDescription(t('The language associated with this token.'))
+      ->setSettings(array(
+        'max_length' => 255,
+      ))
+      ->setRequired(TRUE)
+      ->addConstraint('PushNotificationsTokenLanguage')
+      ->setDisplayOptions('view', array(
+        'label' => 'inline',
+        'type' => 'string',
+        'weight' => 4,
       ))
       ->setDisplayConfigurable('view', TRUE);
 

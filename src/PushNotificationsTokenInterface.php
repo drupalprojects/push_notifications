@@ -51,4 +51,12 @@ interface PushNotificationsTokenInterface extends ContentEntityInterface, Entity
    *   The created time for this entity.
    */
   public function getCreatedTime($type);
+
+  /**
+   * Return the entity's language code.
+   *
+   * @return $string
+   *   Language code for this entity.
+   */
+  public function getLanguageCode();
 }
