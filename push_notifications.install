@@ -41,6 +41,9 @@ function push_notifications_uninstall() {
   variable_del('push_notifications_gcm_project_id');
   variable_del('push_notifications_gcm_api_key');
   variable_del('push_notifications_gcm_server_post_url');
+  variable_del('push_notifications_fcm_cloud_messaging_token');
+  variable_del('push_notifications_fcm_server_key');
+  variable_del('push_notifications_fcm_server_post_url');
   variable_del('push_notifications_privatemsg_integration');
   variable_del('push_notifications_require_enabled_language');
 }

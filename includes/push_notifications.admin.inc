@@ -212,11 +212,12 @@ function push_notifications_admin_form($form_state) {
   $form['configuration_c2dm']['push_notifications_google_type'] = array(
     '#type' => 'radios',
     '#title' => t('Google Push Notifications Type'),
-    '#description' => t('Google\'s C2DM service (Cloud 2 Device Messaging) was replaced by the Google Cloud Messaging Service. Each services requires a different authentication method. '),
+    '#description' => t('Google\'s GCM service (Google Cloud Messaging) is being replaced by the Firebase Cloud Messaging Service (FCM). Google\'s C2DM service (Cloud 2 Device Messaging) was replaced by the Google Cloud Messaging Service (GCM). Each services requires a different authentication method. '),
     '#default_value' => PUSH_NOTIFICATIONS_GOOGLE_TYPE,
     '#options' => array(
       PUSH_NOTIFICATIONS_GOOGLE_TYPE_C2DM => 'Cloud 2 Device Messaging',
       PUSH_NOTIFICATIONS_GOOGLE_TYPE_GCM => 'Google Cloud Messaging',
+      PUSH_NOTIFICATIONS_GOOGLE_TYPE_FCM => 'Firebase Cloud Messaging'
     ),
   );
 
@@ -259,6 +260,30 @@ function push_notifications_admin_form($form_state) {
     '#title' => t('Google Cloud Messaging API Key'),
     '#description' => t('Enter the API key for your Google Cloud project'),
     '#default_value' => variable_get('push_notifications_gcm_api_key', ''),
+  );
+
+  $form['configuration_c2dm']['fcm_credentials'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Firebase Cloud Messaging'),
+    '#description' => t('Enter your Firebase Cloud Messaging details'),
+    '#attributes' => array(
+      'style' => (PUSH_NOTIFICATIONS_GOOGLE_TYPE != PUSH_NOTIFICATIONS_GOOGLE_TYPE_FCM) ? 'display:none' : '',
+    ),
+  );
+
+  $form['configuration_c2dm']['fcm_credentials']['push_notifications_fcm_cloud_messaging_token'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Firebase Cloud Messaging token'),
+    '#description' => t('Enter the token for your Firebase project'),
+    '#default_value' => variable_get('push_notifications_fcm_cloud_messaging_token', ''),
+    '#maxlength' => 255,
+  );
+
+  $form['configuration_c2dm']['fcm_credentials']['push_notifications_fcm_server_key'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Server key'),
+    '#description' => t('Enter the Server key for your Firebase project'),
+    '#default_value' => variable_get('push_notifications_fcm_server_key', ''),
   );
 
   $form['submit'] = array(
@@ -313,12 +338,18 @@ function push_notifications_admin_form_submit($form, &$form_state) {
       break;
   }
 
+  variable_set('push_notifications_google_type', $form_state['values']['push_notifications_google_type']);
+
   // Set C2DM credentials.
   variable_set('push_notifications_c2dm_username', $form_state['values']['push_notifications_c2dm_username']);
   variable_set('push_notifications_c2dm_password', $form_state['values']['push_notifications_c2dm_password']);
 
   // Set GCM API key.
   variable_set('push_notifications_gcm_api_key', $form_state['values']['push_notifications_gcm_api_key']);
+
+  // Set FCM token.
+  variable_set('push_notifications_fcm_cloud_messaging_token', $form_state['values']['push_notifications_fcm_cloud_messaging_token']);
+  variable_set('push_notifications_fcm_server_key', $form_state['values']['push_notifications_fcm_server_key']);
 
   // Set the APNS certificate location.
   $apns_cert_folder = check_plain($form_state['values']['push_notifications_apns_certificate_folder']);
@@ -405,7 +436,11 @@ function push_notifications_mass_push_form($form_state) {
 
   // Only show Android option if C2DM credentials are available.
   $recipients_options = array('ios' => t('iOS (iPhone/iPad)'));
-  if ((PUSH_NOTIFICATIONS_C2DM_USERNAME && PUSH_NOTIFICATIONS_C2DM_PASSWORD) || PUSH_NOTIFICATIONS_GCM_API_KEY) {
+  if (
+    (PUSH_NOTIFICATIONS_C2DM_USERNAME && PUSH_NOTIFICATIONS_C2DM_PASSWORD) ||
+    PUSH_NOTIFICATIONS_GCM_API_KEY ||
+    PUSH_NOTIFICATIONS_FCM_SERVER_KEY
+  ) {
     $recipients_options['android'] = t('Android');
   }
   $form['recipients'] = array(
@@ -506,6 +541,10 @@ function push_notifications_mass_push_form_submit($form, &$form_state) {
         case PUSH_NOTIFICATIONS_GOOGLE_TYPE_GCM:
         $result = push_notifications_gcm_send_message($tokens_android, $payload);
         break;
+
+        case PUSH_NOTIFICATIONS_GOOGLE_TYPE_FCM:
+          $result = push_notifications_fcm_send_message($tokens_android, $payload);
+          break;
       }
       $dsm_type = ($result['success']) ? 'status' : 'error';
       drupal_set_message($result['message'], $dsm_type);

@@ -48,6 +48,7 @@ define('PUSH_NOTIFICATIONS_APNS_STREAM_CONTEXT_LIMIT', variable_get('push_notifi
 // 1 => Google Cloud Messaging
 define('PUSH_NOTIFICATIONS_GOOGLE_TYPE_C2DM', 0);
 define('PUSH_NOTIFICATIONS_GOOGLE_TYPE_GCM', 1);
+define('PUSH_NOTIFICATIONS_GOOGLE_TYPE_FCM', 2);
 define('PUSH_NOTIFICATIONS_GOOGLE_TYPE', variable_get('push_notifications_google_type', PUSH_NOTIFICATIONS_GOOGLE_TYPE_GCM));
 
 //
@@ -67,6 +68,16 @@ define('PUSH_NOTIFICATIONS_C2DM_SERVER_POST_URL', variable_get('push_notificatio
 define('PUSH_NOTIFICATIONS_GCM_API_KEY', variable_get('push_notifications_gcm_api_key', ''));
 // GCM Server Post URL
 define('PUSH_NOTIFICATIONS_GCM_SERVER_POST_URL', variable_get('push_notifications_gcm_server_post_url', 'https://android.googleapis.com/gcm/send'));
+
+//
+// FCM Variables
+//
+// FCM Cloud Messaging TokenSender ID
+define('PUSH_NOTIFICATIONS_FCM_CLOUD_MESSAGING_TOKEN', variable_get('push_notifications_fcm_cloud_messaging_token', ''));
+// FCM Cloud Messaging Server Key
+define('PUSH_NOTIFICATIONS_FCM_SERVER_KEY', variable_get('push_notifications_fcm_server_key', ''));
+// FCM Server Post URL
+define('PUSH_NOTIFICATIONS_FCM_SERVER_POST_URL', variable_get('push_notifications_fcm_server_post_url', 'https://fcm.googleapis.com/fcm/send'));
 
 
 /**
@@ -589,7 +600,11 @@ function push_notifications_send_alert($tokens = array(), $payload = array()) {
   }
 
   // Send payload to Android recipients if configured correctly.
-  if (!empty($tokens_android) && ((PUSH_NOTIFICATIONS_C2DM_USERNAME && PUSH_NOTIFICATIONS_C2DM_PASSWORD) || PUSH_NOTIFICATIONS_GCM_API_KEY)) {
+  if (!empty($tokens_android) && (
+      (PUSH_NOTIFICATIONS_C2DM_USERNAME && PUSH_NOTIFICATIONS_C2DM_PASSWORD) ||
+      PUSH_NOTIFICATIONS_GCM_API_KEY ||
+      PUSH_NOTIFICATIONS_FCM_SERVER_KEY
+    )) {
     // Determine which method to use for Google push notifications.
     switch (PUSH_NOTIFICATIONS_GOOGLE_TYPE) {
       case PUSH_NOTIFICATIONS_GOOGLE_TYPE_C2DM:
@@ -598,6 +613,10 @@ function push_notifications_send_alert($tokens = array(), $payload = array()) {
 
       case PUSH_NOTIFICATIONS_GOOGLE_TYPE_GCM:
         push_notifications_gcm_send_message($tokens_android, $payload);
+        break;
+
+      case PUSH_NOTIFICATIONS_GOOGLE_TYPE_FCM:
+        push_notifications_fcm_send_message($tokens_android, $payload);
         break;
     }
   }
@@ -988,6 +1007,121 @@ function push_notifications_gcm_send_message($tokens, $payload) {
   return $result;
 }
 
+/**
+ * Send out push notifications through FCM.
+ *
+ * @link https://firebase.google.com/docs/cloud-messaging/
+ *
+ * @param $tokens
+ *   Array of fcm tokens
+ * @param $payload
+ *   Payload to send.
+ *
+ * @return
+ *   Array with the following keys:
+ *   - count_attempted (# of attempted messages sent)
+ *   - count_success   (# of successful sends)
+ *   - success         (# boolean)
+ *   - message         (Prepared result message)
+ */
+function push_notifications_fcm_send_message($tokens, $payload) {
+  if (!is_array($tokens) || empty($payload) || (is_array($tokens) && empty($tokens))) {
+    return FALSE;
+  }
+
+  // Define an array of result values.
+  $result = array(
+    'count_attempted' => 0,
+    'count_success' => 0,
+    'success' => 0,
+    'message' => '',
+  );
+
+  // Define the header.
+  $headers = array();
+  $headers[] = 'Content-Type:application/json';
+  $headers[] = 'Authorization: key=' . PUSH_NOTIFICATIONS_FCM_SERVER_KEY;
+
+  // Check of many token bundles can be build.
+  $token_bundles = ceil(count($tokens) / 1000);
+  $result['count_attempted'] = count($tokens);
+
+  // Send a push notification to every recipient.
+  for ($i = 0; $i < $token_bundles; $i++) {
+    // Create a token bundle.
+    $bundle_tokens = array_slice($tokens, $i * 1000, 1000, FALSE);
+
+    // Convert the payload into the correct format for C2DM payloads.
+    // Prefill an array with values from other modules first.
+    $data = array();
+    foreach ($payload as $key => $value) {
+      if ($key != 'alert') {
+        $data['data'][$key] = $value;
+      }
+    }
+    // Fill the default values required for each payload.
+    $data['registration_ids'] = $bundle_tokens;
+    $data['collapse_key'] = (string) time();
+    $data['data']['message'] = $payload['alert'];
+
+    $curl = curl_init();
+    curl_setopt($curl, CURLOPT_URL, PUSH_NOTIFICATIONS_FCM_SERVER_POST_URL);
+    curl_setopt($curl, CURLOPT_HTTPHEADER, $headers);
+    curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, FALSE);
+    curl_setopt($curl, CURLOPT_POST, TRUE);
+    curl_setopt($curl, CURLOPT_RETURNTRANSFER, TRUE);
+    curl_setopt($curl, CURLOPT_POSTFIELDS, json_encode($data));
+    $response_raw = curl_exec($curl);
+    $info = curl_getinfo($curl);
+    curl_close($curl);
+
+    $response = FALSE;
+    if (isset($response_raw)) {
+      $response = json_decode($response_raw);
+    }
+
+    // If Google's server returns a reply, but that reply includes an error,
+    // log the error message.
+    if ($info['http_code'] == 200 && (!empty($response->failure))) {
+      watchdog('push_notifications', "Google's Server returned an error: " . $response_raw, NULL, WATCHDOG_ERROR);
+
+      // Analyze the failure.
+      foreach ($response->results as $token_index => $message_result) {
+        if (!empty($message_result->error)) {
+          // If the device token is invalid or not registered (anymore because the user
+          // has uninstalled the application), remove this device token.
+          if ($message_result->error == 'NotRegistered' || $message_result->error == 'InvalidRegistration') {
+            push_notifications_purge_token($bundle_tokens[$token_index], PUSH_NOTIFICATIONS_TYPE_ID_ANDROID);
+            watchdog('push_notifications', 'FCM token not valid anymore. Removing token ' . $bundle_tokens[$token_index]);
+          }
+        }
+      }
+    }
+
+    // Count the successful sent push notifications if there are any.
+    if ($info['http_code'] == 200 && !empty($response->success)) {
+      $result['count_success'] += $response->success;
+    }
+  }
+
+  $result['message'] = t('Successfully sent !count_success Firebase Cloud Messages (attempted to send !count messages).', array('!count_success' => $result['count_success'], '!count' => $result['count_attempted']));
+  $result['success'] = TRUE;
+
+  // Invoke rules.
+  if (module_exists('rules')) {
+    rules_invoke_event_by_args('push_notifications_after_fcm_send', array(
+        'type_id' => PUSH_NOTIFICATIONS_TYPE_ID_ANDROID,
+        'payload' => $payload,
+        'count_attempted' => $result['count_attempted'],
+        'count_success' => $result['count_success'],
+        'success' => $result['success'],
+        'result_message' => $result['message'],
+      )
+    );
+  }
+
+  return $result;
+}
 
 /**
  * Determine all recipients from a specific device type.
