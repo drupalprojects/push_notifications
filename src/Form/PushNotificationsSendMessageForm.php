@@ -43,10 +43,10 @@ class PushNotificationsSendMessageForm extends FormBase {
 
     // Only show Android option if GCM Api Key is available..
     $recipients_options = array(
-      PUSH_NOTIFICATIONS_TYPE_ID_IOS => t('iOS (Apple Push Notifications)')
+      PUSH_NOTIFICATIONS_NETWORK_ID_IOS => t('iOS (Apple Push Notifications)')
     );
     if (!empty(\Drupal::config('push_notifications.gcm')->get('api_key'))) {
-      $recipients_options[PUSH_NOTIFICATIONS_TYPE_ID_ANDROID] = t('Android (Google Cloud Messaging)');
+      $recipients_options[PUSH_NOTIFICATIONS_NETWORK_ID_ANDROID] = t('Android (Google Cloud Messaging)');
     }
     $form['networks'] = array(
       '#type' => 'checkboxes',
